@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin – Gerichte verwalten</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0a0a0f; --surface: #111118; --surface2: #1a1a24; --border: #252535;
+      --text: #f0f0f8; --muted: #7a7a96; --green: #22c55e; --red: #f87171;
+      --amber: #f59e0b; --blue: #60a5fa;
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text);
+      min-height: 100vh; padding: 32px 16px 80px;
+      background-image: radial-gradient(ellipse at 20% 0%, #0f2a1a 0%, transparent 50%),
+                        radial-gradient(ellipse at 80% 100%, #1a0f2a 0%, transparent 50%); }
+    h1,h2,h3 { font-family: 'Syne', sans-serif; }
+    .wrapper { max-width: 900px; margin: 0 auto; }
+
+    /* LOGIN */
+    #login-screen {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; min-height: 80vh; gap: 24px;
+    }
+    .login-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 24px; padding: 40px; width: 100%; max-width: 420px;
+    }
+    .login-card h2 { font-size: 1.5rem; margin-bottom: 24px; color: var(--green); }
+    .login-err { color: var(--red); font-size: 0.85rem; margin-top: 8px; display: none; }
+
+    /* INPUTS */
+    input[type="password"], input[type="text"], input[type="number"], select, textarea {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 12px; padding: 12px 16px; font-size: 0.95rem;
+      font-family: 'DM Sans', sans-serif; color: var(--text); outline: none;
+      transition: border-color 0.2s; -webkit-appearance: none;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--green); }
+    textarea { resize: vertical; min-height: 70px; }
+    label.field-label {
+      display: block; font-size: 0.75rem; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--muted); margin-bottom: 6px; margin-top: 16px;
+    }
+
+    /* BUTTONS */
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 12px 20px;
+      border-radius: 12px; border: none; font-family: 'Syne', sans-serif;
+      font-size: 0.9rem; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+    .btn-green { background: var(--green); color: #000; }
+    .btn-green:hover { background: #16a34a; }
+    .btn-red { background: rgba(248,113,113,0.15); color: var(--red); border: 1px solid rgba(248,113,113,0.3); }
+    .btn-red:hover { background: rgba(248,113,113,0.25); }
+    .btn-ghost { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+    .btn-ghost:hover { color: var(--text); border-color: var(--text); }
+    .btn-amber { background: rgba(245,158,11,0.15); color: var(--amber); border: 1px solid rgba(245,158,11,0.3); }
+    .btn-amber:hover { background: rgba(245,158,11,0.25); }
+    .btn-full { width: 100%; justify-content: center; margin-top: 16px; padding: 14px; }
+
+    /* HEADER */
+    .admin-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 32px; flex-wrap: wrap; gap: 12px;
+    }
+    .admin-header h1 { font-size: 1.8rem; color: var(--green); }
+    .header-right { display: flex; gap: 10px; align-items: center; }
+
+    /* SETTINGS CARD */
+    .settings-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 24px; margin-bottom: 28px;
+    }
+    .settings-card h3 { font-size: 0.9rem; color: var(--muted); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.06em; }
+    .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .settings-grid .full { grid-column: 1 / -1; }
+    .connected-badge {
+      display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px;
+      background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3);
+      border-radius: 20px; font-size: 0.78rem; color: var(--green);
+    }
+
+    /* TABS */
+    .tabs { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+    .tab {
+      padding: 10px 20px; border-radius: 12px; border: 1px solid var(--border);
+      background: var(--surface2); color: var(--muted); font-size: 0.9rem;
+      font-weight: 600; cursor: pointer; transition: all 0.2s;
+      font-family: 'Syne', sans-serif;
+    }
+    .tab.active { border-color: var(--green); color: var(--green); background: rgba(34,197,94,0.08); }
+
+    /* STATUS BAR */
+    .status-bar {
+      padding: 10px 16px; border-radius: 12px; font-size: 0.85rem;
+      margin-bottom: 20px; display: none; align-items: center; gap: 8px;
+    }
+    .status-bar.success { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: var(--green); display: flex; }
+    .status-bar.error   { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); color: var(--red); display: flex; }
+    .status-bar.loading { background: rgba(96,165,250,0.1); border: 1px solid rgba(96,165,250,0.3); color: var(--blue); display: flex; }
+
+    /* MEAL CARD */
+    .meal-list { display: flex; flex-direction: column; gap: 12px; }
+    .meal-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; padding: 18px; transition: border-color 0.2s;
+    }
+    .meal-card:hover { border-color: #353550; }
+    .meal-card-top {
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+    }
+    .meal-card-name { font-weight: 500; font-size: 0.95rem; flex: 1; line-height: 1.4; }
+    .meal-card-badges { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .badge {
+      font-size: 0.72rem; padding: 3px 8px; border-radius: 8px; font-weight: 600;
+    }
+    .badge-kcal  { background: rgba(34,197,94,0.12); color: var(--green); }
+    .badge-prot  { background: rgba(245,158,11,0.12); color: var(--amber); }
+    .badge-carbs { background: rgba(96,165,250,0.12); color: var(--blue); }
+    .badge-fat   { background: rgba(248,113,113,0.12); color: var(--red); }
+    .badge-type-normal       { background: rgba(148,163,184,0.12); color: #94a3b8; }
+    .badge-type-vegetarisch  { background: rgba(34,197,94,0.12);  color: var(--green); }
+    .badge-type-vegan        { background: rgba(96,165,250,0.12);  color: var(--blue); }
+    .meal-card-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .meal-card-note { font-size: 0.8rem; color: var(--muted); margin-top: 8px; font-style: italic; }
+
+    /* EDIT FORM */
+    .edit-form {
+      border-top: 1px solid var(--border); margin-top: 16px; padding-top: 16px;
+      display: none;
+    }
+    .edit-form.open { display: block; }
+    .edit-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; }
+    .edit-grid .full { grid-column: 1 / -1; }
+    .edit-actions { display: flex; gap: 8px; margin-top: 12px; }
+
+    /* ADD FORM */
+    .add-card {
+      background: var(--surface); border: 2px dashed var(--border);
+      border-radius: 16px; padding: 24px; margin-top: 20px;
+    }
+    .add-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 16px; color: var(--green); }
+    .add-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; }
+    .add-grid .full { grid-column: 1 / -1; }
+
+    /* COUNT BADGE */
+    .count-badge {
+      display: inline-block; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 20px; padding: 2px 10px; font-size: 0.75rem; color: var(--muted);
+      margin-left: 8px; font-family: 'DM Sans', sans-serif;
+    }
+
+    /* CONFIRM DIALOG */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100; display: none;
+    }
+    .overlay.open { display: flex; }
+    .dialog {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 20px; padding: 32px; max-width: 400px; width: 90%;
+      text-align: center;
+    }
+    .dialog h3 { font-size: 1.1rem; margin-bottom: 8px; }
+    .dialog p { color: var(--muted); font-size: 0.9rem; margin-bottom: 24px; }
+    .dialog-actions { display: flex; gap: 10px; justify-content: center; }
+
+    @media (max-width: 600px) {
+      .settings-grid, .edit-grid, .add-grid { grid-template-columns: 1fr 1fr; }
+      .settings-grid .full, .edit-grid .full, .add-grid .full { grid-column: 1 / -1; }
+      .edit-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 420px) {
+      .settings-grid, .edit-grid, .add-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- LOGIN -->
+  <div id="login-screen">
+    <div style="text-align:center">
+      <h1 style="font-family:'Syne',sans-serif;font-size:2rem;color:var(--green)">🔒 Admin-Bereich</h1>
+      <p style="color:var(--muted);margin-top:8px">Gerichte verwalten</p>
+    </div>
+    <div class="login-card">
+      <h2>Anmelden</h2>
+      <label class="field-label">Passwort</label>
+      <input type="password" id="login-pw" placeholder="Passwort eingeben" onkeydown="if(event.key==='Enter')doLogin()">
+      <p class="login-err" id="login-err">❌ Falsches Passwort</p>
+      <button class="btn btn-green btn-full" onclick="doLogin()">Anmelden →</button>
+      <p style="color:var(--muted);font-size:0.78rem;margin-top:16px;text-align:center">
+        Erstes Login? Passwort wird gespeichert.<br>Zum Ändern: localStorage löschen.
+      </p>
+    </div>
+  </div>
+
+  <!-- ADMIN APP -->
+  <div id="admin-app" style="display:none">
+
+    <div class="admin-header">
+      <div>
+        <h1>⚙️ Gerichte-Admin</h1>
+        <p style="color:var(--muted);font-size:0.85rem;margin-top:4px">Gerichte hinzufügen, bearbeiten und löschen</p>
+      </div>
+      <div class="header-right">
+        <span id="gh-badge" style="display:none" class="connected-badge">✅ GitHub verbunden</span>
+        <button class="btn btn-ghost" onclick="doLogout()">Abmelden</button>
+      </div>
+    </div>
+
+    <!-- STATUS -->
+    <div class="status-bar" id="status-bar"></div>
+
+    <!-- GITHUB SETTINGS -->
+    <div class="settings-card">
+      <h3>⚙️ GitHub Einstellungen</h3>
+      <div class="settings-grid">
+        <div>
+          <label class="field-label">GitHub Token</label>
+          <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxx">
+        </div>
+        <div>
+          <label class="field-label">Repository (user/repo)</label>
+          <input type="text" id="gh-repo" placeholder="deinname/dein-repo">
+        </div>
+        <div>
+          <label class="field-label">Branch</label>
+          <input type="text" id="gh-branch" placeholder="main">
+        </div>
+        <div>
+          <label class="field-label">Dateipfad</label>
+          <input type="text" id="gh-path" placeholder="gerichte.json">
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+        <button class="btn btn-green" onclick="saveGHSettings()">💾 Einstellungen speichern</button>
+        <button class="btn btn-ghost" onclick="loadFromGH()">📥 Gerichte von GitHub laden</button>
+      </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('fruehstueck',this)">
+        🥣 Frühstück <span class="count-badge" id="count-fruehstueck">0</span>
+      </button>
+      <button class="tab" onclick="switchTab('snack',this)">
+        🍎 Snack <span class="count-badge" id="count-snack">0</span>
+      </button>
+      <button class="tab" onclick="switchTab('abendessen',this)">
+        🍽️ Abendessen <span class="count-badge" id="count-abendessen">0</span>
+      </button>
+    </div>
+
+    <!-- MEAL LIST -->
+    <div class="meal-list" id="meal-list"></div>
+
+    <!-- ADD FORM -->
+    <div class="add-card">
+      <h3>➕ Neues Gericht hinzufügen</h3>
+      <div class="add-grid">
+        <div class="full">
+          <label class="field-label">Name / Zutaten</label>
+          <input type="text" id="add-name" placeholder="z.B. 200g Hähnchenbrust + 150g Reis + Gemüse">
+        </div>
+        <div>
+          <label class="field-label">kcal</label>
+          <input type="number" id="add-kcal" placeholder="500">
+        </div>
+        <div>
+          <label class="field-label">Protein (g)</label>
+          <input type="number" id="add-protein" placeholder="40">
+        </div>
+        <div>
+          <label class="field-label">Kohlenhydrate (g)</label>
+          <input type="number" id="add-carbs" placeholder="50">
+        </div>
+        <div>
+          <label class="field-label">Fett (g)</label>
+          <input type="number" id="add-fat" placeholder="10">
+        </div>
+        <div>
+          <label class="field-label">Typ</label>
+          <select id="add-type">
+            <option value="normal">🍽️ Normal (alles)</option>
+            <option value="vegetarisch">🥗 Vegetarisch</option>
+            <option value="vegan">🌱 Vegan</option>
+          </select>
+        </div>
+        <div class="full">
+          <label class="field-label">Notiz / Tipp (optional)</label>
+          <textarea id="add-note" placeholder="z.B. Hähnchen gut marinieren für mehr Geschmack..."></textarea>
+        </div>
+      </div>
+      <button class="btn btn-green" style="margin-top:16px" onclick="addMeal()">➕ Gericht hinzufügen</button>
+    </div>
+
+    <!-- SAVE TO GH -->
+    <div style="margin-top:28px;display:flex;gap:12px;flex-wrap:wrap">
+      <button class="btn btn-green" onclick="saveToGH()" style="font-size:1rem;padding:16px 28px">
+        🚀 In GitHub speichern
+      </button>
+      <button class="btn btn-amber" onclick="downloadJSON()">
+        💾 Als JSON herunterladen
+      </button>
+    </div>
+
+  </div>
+
+  <!-- CONFIRM DIALOG -->
+  <div class="overlay" id="confirm-overlay">
+    <div class="dialog">
+      <h3>Gericht löschen?</h3>
+      <p id="confirm-text">Dieses Gericht wird unwiderruflich gelöscht.</p>
+      <div class="dialog-actions">
+        <button class="btn btn-ghost" onclick="closeConfirm()">Abbrechen</button>
+        <button class="btn btn-red" onclick="confirmDelete()">Löschen</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+<script>
+  // ─── STATE ────────────────────────────────────────────────────────────────
+  let data = { fruehstueck: [], snack: [], abendessen: [] };
+  let currentTab = 'fruehstueck';
+  let deleteTarget = null;
+  let ghSHA = null; // SHA des aktuellen gerichte.json in GitHub (nötig für Updates)
+
+  // ─── PASSWORT ─────────────────────────────────────────────────────────────
+  const PW_KEY = 'admin_pw_hash';
+
+  async function hashPW(pw) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
+    return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+
+  async function doLogin() {
+    const pw = document.getElementById('login-pw').value;
+    if (!pw) return;
+    const hash = await hashPW(pw);
+    const stored = localStorage.getItem(PW_KEY);
+    if (!stored) {
+      localStorage.setItem(PW_KEY, hash);
+      loginSuccess();
+    } else if (stored === hash) {
+      loginSuccess();
+    } else {
+      document.getElementById('login-err').style.display = 'block';
+    }
+  }
+
+  function loginSuccess() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('admin-app').style.display = 'block';
+    loadGHSettings();
+    renderMeals();
+  }
+
+  function doLogout() {
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('admin-app').style.display = 'none';
+    document.getElementById('login-pw').value = '';
+  }
+
+  // ─── GITHUB SETTINGS ──────────────────────────────────────────────────────
+  function saveGHSettings() {
+    localStorage.setItem('gh_token',  document.getElementById('gh-token').value);
+    localStorage.setItem('gh_repo',   document.getElementById('gh-repo').value);
+    localStorage.setItem('gh_branch', document.getElementById('gh-branch').value || 'main');
+    localStorage.setItem('gh_path',   document.getElementById('gh-path').value  || 'gerichte.json');
+    showStatus('✅ Einstellungen gespeichert!', 'success');
+    updateGHBadge();
+  }
+
+  function loadGHSettings() {
+    document.getElementById('gh-token').value  = localStorage.getItem('gh_token')  || '';
+    document.getElementById('gh-repo').value   = localStorage.getItem('gh_repo')   || '';
+    document.getElementById('gh-branch').value = localStorage.getItem('gh_branch') || 'main';
+    document.getElementById('gh-path').value   = localStorage.getItem('gh_path')   || 'gerichte.json';
+    updateGHBadge();
+  }
+
+  function updateGHBadge() {
+    const hasToken = !!localStorage.getItem('gh_token');
+    const hasRepo  = !!localStorage.getItem('gh_repo');
+    document.getElementById('gh-badge').style.display = (hasToken && hasRepo) ? 'inline-flex' : 'none';
+  }
+
+  function getGHHeaders() {
+    return {
+      'Authorization': `Bearer ${localStorage.getItem('gh_token')}`,
+      'Accept': 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28'
+    };
+  }
+
+  function getGHUrl() {
+    const repo   = localStorage.getItem('gh_repo');
+    const branch = localStorage.getItem('gh_branch') || 'main';
+    const path   = localStorage.getItem('gh_path')   || 'gerichte.json';
+    return `https://api.github.com/repos/${repo}/contents/${path}?ref=${branch}`;
+  }
+
+  // ─── LADEN VON GITHUB ─────────────────────────────────────────────────────
+  async function loadFromGH() {
+    const token = localStorage.getItem('gh_token');
+    const repo  = localStorage.getItem('gh_repo');
+    if (!token || !repo) { showStatus('❌ Bitte zuerst Token und Repository eintragen!', 'error'); return; }
+    showStatus('⏳ Lade von GitHub...', 'loading');
+    try {
+      const res = await fetch(getGHUrl(), { headers: getGHHeaders() });
+      if (!res.ok) throw new Error(`GitHub Fehler: ${res.status}`);
+      const json = await res.json();
+      ghSHA = json.sha;
+      data = JSON.parse(atob(json.content.replace(/\n/g, '')));
+      renderMeals();
+      showStatus('✅ Gerichte erfolgreich geladen!', 'success');
+    } catch (e) {
+      showStatus(`❌ Fehler: ${e.message}`, 'error');
+    }
+  }
+
+  // ─── SPEICHERN IN GITHUB ──────────────────────────────────────────────────
+  async function saveToGH() {
+    const token  = localStorage.getItem('gh_token');
+    const repo   = localStorage.getItem('gh_repo');
+    const branch = localStorage.getItem('gh_branch') || 'main';
+    const path   = localStorage.getItem('gh_path')   || 'gerichte.json';
+    if (!token || !repo) { showStatus('❌ Bitte zuerst Token und Repository eintragen!', 'error'); return; }
+    showStatus('⏳ Speichere in GitHub...', 'loading');
+    try {
+      // Holt aktuellen SHA falls noch nicht bekannt
+      if (!ghSHA) {
+        const r = await fetch(getGHUrl(), { headers: getGHHeaders() });
+        if (r.ok) { const j = await r.json(); ghSHA = j.sha; }
+      }
+      const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
+      const body = { message: '🍽️ Gerichte aktualisiert via Admin', content, branch };
+      if (ghSHA) body.sha = ghSHA;
+
+      const res = await fetch(`https://api.github.com/repos/${repo}/contents/${path}`, {
+        method: 'PUT', headers: { ...getGHHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.message); }
+      const json = await res.json();
+      ghSHA = json.content.sha;
+      showStatus('🚀 Erfolgreich in GitHub gespeichert! Seite wird in ~1 Minute aktuell.', 'success');
+    } catch (e) {
+      showStatus(`❌ Fehler: ${e.message}`, 'error');
+    }
+  }
+
+  // ─── DOWNLOAD ─────────────────────────────────────────────────────────────
+  function downloadJSON() {
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'gerichte.json'; a.click();
+  }
+
+  // ─── TAB ──────────────────────────────────────────────────────────────────
+  function switchTab(tab, btn) {
+    currentTab = tab;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    renderMeals();
+  }
+
+  // ─── RENDER ───────────────────────────────────────────────────────────────
+  function renderMeals() {
+    ['fruehstueck','snack','abendessen'].forEach(cat => {
+      document.getElementById(`count-${cat}`).textContent = data[cat]?.length || 0;
+    });
+
+    const list = data[currentTab] || [];
+    const container = document.getElementById('meal-list');
+
+    if (!list.length) {
+      container.innerHTML = `<div style="text-align:center;color:var(--muted);padding:40px">Noch keine Gerichte in dieser Kategorie.</div>`;
+      return;
+    }
+
+    container.innerHTML = list.map((m, i) => `
+      <div class="meal-card" id="meal-${i}">
+        <div class="meal-card-top">
+          <div style="flex:1">
+            <div class="meal-card-name">${m.name}</div>
+            <div class="meal-card-badges">
+              <span class="badge badge-kcal">🔥 ${m.kcal} kcal</span>
+              <span class="badge badge-prot">💪 ${m.protein}g P</span>
+              <span class="badge badge-carbs">🌾 ${m.carbs||'?'}g KH</span>
+              <span class="badge badge-fat">🥑 ${m.fat||'?'}g F</span>
+              <span class="badge badge-type-${m.type||'normal'}">${m.type==='vegan'?'🌱 Vegan':m.type==='vegetarisch'?'🥗 Vegetarisch':'🍽️ Normal'}</span>
+            </div>
+            ${m.note ? `<div class="meal-card-note">💡 ${m.note}</div>` : ''}
+          </div>
+          <div class="meal-card-actions">
+            <button class="btn btn-ghost" onclick="toggleEdit(${i})" style="padding:8px 12px;font-size:0.8rem">✏️</button>
+            <button class="btn btn-red" onclick="openConfirm(${i})" style="padding:8px 12px;font-size:0.8rem">🗑️</button>
+          </div>
+        </div>
+        <!-- EDIT FORM -->
+        <div class="edit-form" id="edit-${i}">
+          <div class="edit-grid">
+            <div class="full">
+              <label class="field-label">Name / Zutaten</label>
+              <input type="text" id="e-name-${i}" value="${escHtml(m.name)}">
+            </div>
+            <div>
+              <label class="field-label">kcal</label>
+              <input type="number" id="e-kcal-${i}" value="${m.kcal}">
+            </div>
+            <div>
+              <label class="field-label">Protein (g)</label>
+              <input type="number" id="e-protein-${i}" value="${m.protein}">
+            </div>
+            <div>
+              <label class="field-label">Kohlenhydrate (g)</label>
+              <input type="number" id="e-carbs-${i}" value="${m.carbs||0}">
+            </div>
+            <div>
+              <label class="field-label">Fett (g)</label>
+              <input type="number" id="e-fat-${i}" value="${m.fat||0}">
+            </div>
+            <div>
+              <label class="field-label">Typ</label>
+              <select id="e-type-${i}">
+                <option value="normal" ${m.type==='normal'?'selected':''}>🍽️ Normal</option>
+                <option value="vegetarisch" ${m.type==='vegetarisch'?'selected':''}>🥗 Vegetarisch</option>
+                <option value="vegan" ${m.type==='vegan'?'selected':''}>🌱 Vegan</option>
+              </select>
+            </div>
+            <div class="full">
+              <label class="field-label">Notiz / Tipp</label>
+              <textarea id="e-note-${i}">${escHtml(m.note||'')}</textarea>
+            </div>
+          </div>
+          <div class="edit-actions">
+            <button class="btn btn-green" onclick="saveEdit(${i})">💾 Speichern</button>
+            <button class="btn btn-ghost" onclick="toggleEdit(${i})">Abbrechen</button>
+          </div>
+        </div>
+      </div>`).join('');
+  }
+
+  function escHtml(s) {
+    return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ─── EDIT ─────────────────────────────────────────────────────────────────
+  function toggleEdit(i) {
+    const el = document.getElementById(`edit-${i}`);
+    el.classList.toggle('open');
+  }
+
+  function saveEdit(i) {
+    data[currentTab][i] = {
+      name:    document.getElementById(`e-name-${i}`).value.trim(),
+      kcal:    parseInt(document.getElementById(`e-kcal-${i}`).value) || 0,
+      protein: parseInt(document.getElementById(`e-protein-${i}`).value) || 0,
+      carbs:   parseInt(document.getElementById(`e-carbs-${i}`).value) || 0,
+      fat:     parseInt(document.getElementById(`e-fat-${i}`).value) || 0,
+      type:    document.getElementById(`e-type-${i}`).value,
+      note:    document.getElementById(`e-note-${i}`).value.trim(),
+    };
+    renderMeals();
+    showStatus('✅ Gericht gespeichert – vergiss nicht in GitHub zu speichern!', 'success');
+  }
+
+  // ─── ADD ──────────────────────────────────────────────────────────────────
+  function addMeal() {
+    const name = document.getElementById('add-name').value.trim();
+    if (!name) { showStatus('❌ Bitte einen Namen eingeben!', 'error'); return; }
+    data[currentTab].push({
+      name,
+      kcal:    parseInt(document.getElementById('add-kcal').value)    || 0,
+      protein: parseInt(document.getElementById('add-protein').value) || 0,
+      carbs:   parseInt(document.getElementById('add-carbs').value)   || 0,
+      fat:     parseInt(document.getElementById('add-fat').value)     || 0,
+      type:    document.getElementById('add-type').value,
+      note:    document.getElementById('add-note').value.trim(),
+    });
+    ['add-name','add-kcal','add-protein','add-carbs','add-fat','add-note'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('add-type').value = 'normal';
+    renderMeals();
+    showStatus('✅ Gericht hinzugefügt – vergiss nicht in GitHub zu speichern!', 'success');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ─── DELETE ───────────────────────────────────────────────────────────────
+  function openConfirm(i) {
+    deleteTarget = i;
+    document.getElementById('confirm-text').textContent =
+      `"${data[currentTab][i].name.substring(0,60)}..." wird gelöscht.`;
+    document.getElementById('confirm-overlay').classList.add('open');
+  }
+
+  function closeConfirm() {
+    document.getElementById('confirm-overlay').classList.remove('open');
+    deleteTarget = null;
+  }
+
+  function confirmDelete() {
+    if (deleteTarget === null) return;
+    data[currentTab].splice(deleteTarget, 1);
+    closeConfirm();
+    renderMeals();
+    showStatus('🗑️ Gericht gelöscht – vergiss nicht in GitHub zu speichern!', 'success');
+  }
+
+  // ─── STATUS ───────────────────────────────────────────────────────────────
+  let statusTimer;
+  function showStatus(msg, type) {
+    const el = document.getElementById('status-bar');
+    el.textContent = msg;
+    el.className = `status-bar ${type}`;
+    clearTimeout(statusTimer);
+    if (type !== 'loading') statusTimer = setTimeout(() => { el.className = 'status-bar'; }, 5000);
+  }
+
+  // Overlay schließen bei Klick außerhalb
+  document.getElementById('confirm-overlay').addEventListener('click', function(e) {
+    if (e.target === this) closeConfirm();
+  });
+</script>
+</body>
+</html>
