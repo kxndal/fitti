@@ -344,48 +344,58 @@
 <script>
   // ── QUESTIONS ────────────────────────────────────────────────────────────────
   const QUESTIONS = [
-    { id:'level', num:'Frage 1 von 7', text:'Wie lange trainierst du schon?', hint:'Dein Erfahrungslevel bestimmt die Komplexität des Plans.', type:'single',
+    { id:'level', num:'Frage 1 von 8', text:'Wie lange trainierst du schon?', hint:'Dein Erfahrungslevel bestimmt die Komplexität des Plans.', type:'single',
       options:[
         {icon:'🌱',label:'Anfänger',desc:'Weniger als 1 Jahr oder nach langer Pause',value:'beginner'},
         {icon:'🔥',label:'Fortgeschritten',desc:'1–3 Jahre regelmäßiges Training',value:'intermediate'},
         {icon:'⚡',label:'Erfahren',desc:'Mehr als 3 Jahre, solide Technik',value:'advanced'},
       ]},
-    { id:'days', num:'Frage 2 von 7', text:'Wie viele Tage pro Woche kannst du trainieren?', hint:'Sei realistisch – Konstanz schlägt Quantität.', type:'single',
+    { id:'days', num:'Frage 2 von 8', text:'Wie viele Tage pro Woche kannst du trainieren?', hint:'Sei realistisch – Konstanz schlägt Quantität.', type:'single',
       options:[
         {icon:'',label:'2 Tage',value:2},{icon:'',label:'3 Tage',value:3},
         {icon:'',label:'4 Tage',value:4},{icon:'',label:'5–6 Tage',value:5},
       ]},
-    { id:'goal', num:'Frage 3 von 7', text:'Was ist dein Hauptziel?', hint:'Der Plan wird auf dein Ziel hin optimiert.', type:'single',
+    { id:'goal', num:'Frage 3 von 8', text:'Was ist dein Hauptziel?', hint:'Der Plan wird auf dein Ziel hin optimiert.', type:'single',
       options:[
         {icon:'💪',label:'Muskelaufbau',desc:'Mehr Muskelmasse und Definition',value:'muscle'},
         {icon:'🏋️',label:'Kraft steigern',desc:'Stärker werden in Grundübungen',value:'strength'},
         {icon:'🔥',label:'Fett verbrennen',desc:'Abnehmen und Körper formen',value:'fat'},
         {icon:'🏃',label:'Allgemeine Fitness',desc:'Gesünder und beweglicher werden',value:'fitness'},
       ]},
-    { id:'equipment', num:'Frage 4 von 7', text:'Was steht dir zur Verfügung?', hint:'Der Plan wird auf deine Ausrüstung abgestimmt.', type:'single',
+    { id:'equipment', num:'Frage 4 von 8', text:'Was steht dir zur Verfügung?', hint:'Der Plan wird auf deine Ausrüstung abgestimmt.', type:'single',
       options:[
         {icon:'🏟️',label:'Fitnessstudio',desc:'Alle Geräte und Maschinen',value:'gym'},
         {icon:'🏠',label:'Zuhause mit Geräten',desc:'Kurzhanteln, Langhantel oder Bank',value:'home_eq'},
         {icon:'🤸',label:'Nur Körpergewicht',desc:'Calisthenics ohne Equipment',value:'bodyweight'},
       ]},
-    { id:'time', num:'Frage 5 von 7', text:'Wie viel Zeit pro Training?', hint:'Inkl. Aufwärmen.', type:'single',
+    { id:'time', num:'Frage 5 von 8', text:'Wie viel Zeit pro Training?', hint:'Inkl. Aufwärmen.', type:'single',
       options:[
         {icon:'',label:'Bis 45 Min.',value:'short'},{icon:'',label:'45–75 Min.',value:'medium'},
         {icon:'',label:'75–90 Min.',value:'long'},{icon:'',label:'90+ Min.',value:'xlong'},
       ]},
-    { id:'injury', num:'Frage 6 von 7', text:'Hast du Einschränkungen oder Verletzungen?', hint:'Betroffene Übungen werden automatisch durch schonende Alternativen ersetzt.', type:'multi', max:3, exclusive:'none',
+    { id:'injury', num:'Frage 6 von 8', text:'Hast du Einschränkungen oder Verletzungen?', hint:'Betroffene Übungen werden automatisch durch schonende Alternativen ersetzt.', type:'multi', max:3, exclusive:'none',
       options:[
         {icon:'🦵',label:'Knie',desc:'Knieprobleme oder -verletzungen',value:'knee'},
         {icon:'💪',label:'Schulter',desc:'Schulterprobleme oder Impingement',value:'shoulder'},
         {icon:'🔙',label:'Rücken',desc:'Bandscheibe, LWS oder Rückenprobleme',value:'back'},
         {icon:'✅',label:'Keine',desc:'Alles in Ordnung',value:'none'},
       ]},
-    { id:'weakness', num:'Frage 7 von 7', text:'Welche Muskeln möchtest du besonders entwickeln?', hint:'Mehrfachauswahl möglich – bis zu 3.', type:'multi', max:3,
+    { id:'weakness', num:'Frage 7 von 8', text:'Welche Muskeln möchtest du besonders entwickeln?', hint:'Mehrfachauswahl möglich – bis zu 3.', type:'multi', max:3,
       options:[
         {icon:'',label:'Brust',value:'chest'},{icon:'',label:'Rücken',value:'back'},
         {icon:'',label:'Beine',value:'legs'},{icon:'',label:'Schultern',value:'shoulders'},
         {icon:'',label:'Arme',value:'arms'},{icon:'',label:'Core / Bauch',value:'core'},
         {icon:'',label:'Alles gleichmäßig',value:'balanced'},
+      ]},
+    { id:'weekStart', num:'Frage 8 von 8', text:'Wann startet deine Woche?', hint:'Die Trainingsstage werden ab diesem Tag angezeigt.', type:'single', grid2: true,
+      options:[
+        {icon:'',label:'Montag',value:'Mo'},
+        {icon:'',label:'Dienstag',value:'Di'},
+        {icon:'',label:'Mittwoch',value:'Mi'},
+        {icon:'',label:'Donnerstag',value:'Do'},
+        {icon:'',label:'Freitag',value:'Fr'},
+        {icon:'',label:'Samstag',value:'Sa'},
+        {icon:'',label:'Sonntag',value:'So'},
       ]},
   ];
 
@@ -662,6 +672,14 @@
       });
     }
 
+    // Rotate schedule to start on chosen weekday
+    const WEEK_DAYS = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+    const startIdx = WEEK_DAYS.indexOf(a.weekStart || 'Mo');
+    if (startIdx > 0) {
+      const rotDays = [...WEEK_DAYS.slice(startIdx), ...WEEK_DAYS.slice(0, startIdx)];
+      schedule = schedule.map((item, i) => ({ ...item, day: rotDays[i] }));
+    }
+
     const repsLabel = a.goal==='strength'?'4–6 Wdh.':a.goal==='fat'?'12–20 Wdh.':a.goal==='muscle'?'8–12 Wdh.':'10–15 Wdh.';
     const freqPerWeek = schedule.filter(d=>d.type==='train').length;
     const volLabel = a.time==='short'?'~45 Min.':a.time==='medium'?'45–75 Min.':a.time==='long'?'75–90 Min.':'90+ Min.';
@@ -692,7 +710,7 @@
     const selected = answers[q.id] || (isMulti ? [] : null);
     const optHtml = (isMulti
       ? `<p class="multi-hint">Mehrfachauswahl (max. ${q.max})</p><div class="options-grid options-grid-2">`
-      : `<div class="options-grid">`)
+      : q.grid2 ? `<div class="options-grid options-grid-2">` : `<div class="options-grid">`)
       + q.options.map(o => {
         const sel = isMulti ? selected.includes(o.value) : selected === o.value;
         return `<button class="option-btn${sel ? ' selected' : ''}" onclick="selectOption('${q.id}','${o.value}',${isMulti},${q.max || 1})">
