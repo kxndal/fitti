@@ -377,6 +377,7 @@
         </div>
       </div>
       <div class="warn-banner" id="warn-banner"></div>
+      <div id="plan-maintain-slot"></div>
     </div>
     <div id="plan-container" style="display:flex;flex-direction:column;gap:16px"></div>
 
@@ -475,7 +476,7 @@
     return { name:meal.name, note:meal.note||'', kcal:Math.round(meal.kcal*f), protein:Math.round(meal.protein*f), carbs:Math.round((meal.carbs||0)*f), fat:Math.round((meal.fat||0)*f), factor:f };
   }
 
-  function buildPlan(goalKey, totalKcal, accentClass, label) {
+  function buildPlan(goalKey, totalKcal, accentClass, label, inline=false) {
     const splits=[0.30,0.25,0.45], names=['Frühstück','Snack','Abendessen'], keys=['fruehstueck','snack','abendessen'];
     let rows='', totK=0, totP=0, totC=0, totF=0; const picked=[]; let hasEmpty=false;
     names.forEach((name,i) => {
@@ -488,13 +489,17 @@
     });
     lastPlans[goalKey]=picked;
     if(hasEmpty) { const w=document.getElementById('warn-banner'); w.textContent='Für manche Mahlzeiten gibt es keine passenden Gerichte – bitte Filter lockern.'; w.style.display='block'; }
-    return `<div class="card plan-card ${accentClass}"><div class="plan-header"><div class="plan-title"><span class="plan-dot"></span>${label}</div><div class="plan-macros"><span class="kcal-val">${totalKcal} kcal</span><span style="color:var(--border)">·</span><span class="prot-val">${goalKey==='maintain'?_protM:goalKey==='build'?_protB:_protL}g P</span></div></div>${rows}<div class="totals-row"><div class="total-item"><span class="total-label">Gesamt:</span><strong>${totK} kcal</strong></div><div class="total-item"><span class="total-label">P:</span><strong>${totP}g</strong></div><div class="total-item"><span class="total-label">KH:</span><strong>${totC}g</strong></div><div class="total-item"><span class="total-label">F:</span><strong>${totF}g</strong></div></div></div>`;
+    const inner = `<div class="plan-header"><div class="plan-title"><span class="plan-dot"></span>${label}</div><div class="plan-macros"><span class="kcal-val">${totalKcal} kcal</span><span style="color:var(--border)">·</span><span class="prot-val">${goalKey==='maintain'?_protM:goalKey==='build'?_protB:_protL}g P</span></div></div>${rows}<div class="totals-row"><div class="total-item"><span class="total-label">Gesamt:</span><strong>${totK} kcal</strong></div><div class="total-item"><span class="total-label">P:</span><strong>${totP}g</strong></div><div class="total-item"><span class="total-label">KH:</span><strong>${totC}g</strong></div><div class="total-item"><span class="total-label">F:</span><strong>${totF}g</strong></div></div>`;
+    return inline
+      ? `<div class="plan-card ${accentClass}" style="border-top:1px solid var(--border)">${inner}</div>`
+      : `<div class="card plan-card ${accentClass}">${inner}</div>`;
   }
 
   function renderPlans() {
     document.getElementById('warn-banner').style.display='none';
+    document.getElementById('plan-maintain-slot').innerHTML =
+      buildPlan('maintain',_maintain,'plan-maintain','Gewicht halten', true);
     document.getElementById('plan-container').innerHTML =
-      buildPlan('maintain',_maintain,'plan-maintain','Gewicht halten') +
       buildPlan('lose',_lose,'plan-lose','Fettabbau') +
       buildPlan('build',_build,'plan-build','Muskelaufbau');
     showShopForGoal(currentShopGoal);
