@@ -741,7 +741,6 @@
     const hasAns = isMulti ? (selected.length > 0) : !!selected;
     document.getElementById('question-card').innerHTML = `
       <div class="question-wrap">
-        <div class="q-num">${q.num}</div>
         <div class="q-text">${q.text}</div>
         <div class="q-hint">${q.hint}</div>
         ${optHtml}
