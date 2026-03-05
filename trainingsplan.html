@@ -368,10 +368,12 @@
         {icon:'🏠',label:'Zuhause mit Geräten',desc:'Kurzhanteln, Langhantel oder Bank',value:'home_eq'},
         {icon:'🤸',label:'Nur Körpergewicht',desc:'Calisthenics ohne Equipment',value:'bodyweight'},
       ]},
-    { id:'time', num:'Frage 5 von 8', text:'Wie viel Zeit pro Training?', hint:'Inkl. Aufwärmen.', type:'single',
+    { id:'time', num:'Frage 5 von 8', text:'Wie viel Zeit hast du pro Training?', hint:'Inkl. Aufwärmen – sei realistisch.', type:'single',
       options:[
-        {icon:'',label:'Bis 45 Min.',value:'short'},{icon:'',label:'45–75 Min.',value:'medium'},
-        {icon:'',label:'75–90 Min.',value:'long'},{icon:'',label:'90+ Min.',value:'xlong'},
+        {icon:'⚡',label:'Unter 45 Min.',desc:'Express – HIIT, Zirkel oder fokussiertes Kompakttraining',value:'short'},
+        {icon:'💪',label:'45–60 Min.',desc:'Standard – klassisches Krafttraining oder Ganzkörperplan',value:'medium'},
+        {icon:'🏋️',label:'60–90 Min.',desc:'Ambitioniert – höheres Volumen, längere Satzpausen',value:'long'},
+        {icon:'🥇',label:'Über 90 Min.',desc:'Profi – Powerlifting, viele Assistenzübungen',value:'xlong'},
       ]},
     { id:'injury', num:'Frage 6 von 8', text:'Hast du Einschränkungen oder Verletzungen?', hint:'Betroffene Übungen werden automatisch durch schonende Alternativen ersetzt.', type:'multi', max:3, exclusive:'none',
       options:[
@@ -682,7 +684,7 @@
 
     const repsLabel = a.goal==='strength'?'4–6 Wdh.':a.goal==='fat'?'12–20 Wdh.':a.goal==='muscle'?'8–12 Wdh.':'10–15 Wdh.';
     const freqPerWeek = schedule.filter(d=>d.type==='train').length;
-    const volLabel = a.time==='short'?'~45 Min.':a.time==='medium'?'45–75 Min.':a.time==='long'?'75–90 Min.':'90+ Min.';
+    const volLabel = a.time==='short'?'<45 Min.':a.time==='medium'?'45–60 Min.':a.time==='long'?'60–90 Min.':'90+ Min.';
 
     const tips=[
       'Progressive Überlastung – erhöhe Gewicht oder Wiederholungen jede Woche minimal. Das ist das Fundament jedes Fortschritts.',
