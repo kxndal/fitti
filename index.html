@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Fitti – Kalorienbedarf & Essensplan</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #000; --surface: #0d0d0d; --surface2: #141414;
+      --border: #202020; --text: #fff; --muted: #4a4a4a; --muted2: #777;
+      --pink: #ff3b6b; --pink-dim: rgba(255,59,107,0.1);
+      --green: #22c55e; --amber: #f59e0b; --blue: #60a5fa;
+    }
+    body { font-family: 'Space Grotesk', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 80px 12px 105px; -webkit-font-smoothing: antialiased; }
+    h1,h2,h3 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; }
+    .page { max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; gap: 80px; }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden;
+    }
+    .card-header {
+      padding: 16px 20px 0;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .card-tag {
+      font-size: 0.6rem; font-weight: 600; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--muted2);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .card-tag::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--pink); flex-shrink:0; }
+    .card-body { padding: 10px 16px 16px; }
+    .card-title { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 6px; }
+    .card-title span { color: var(--pink); }
+    .card-sub { font-size: 0.74rem; color: var(--muted2); line-height: 1.6; }
+
+    /* ── FORM ── */
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 0; }
+    .form-grid .full { grid-column: 1 / -1; }
+    .field label { display: block; font-size: 0.6rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted2); margin-bottom: 6px; }
+    input[type="number"], select {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 9px 11px; font-size: 16px;
+      font-family: 'Space Grotesk', sans-serif; color: var(--text);
+      outline: none; transition: border-color 0.2s; -webkit-appearance: none;
+    }
+    input:focus, select:focus { border-color: #333; }
+    select { cursor: pointer; } option { background:#111; }
+
+    .gender-toggle { display: flex; gap: 8px; }
+    .gender-toggle input { display: none; }
+    .gender-toggle label {
+      flex:1; display:flex; align-items:center; justify-content:center;
+      background:var(--surface2); border:1px solid var(--border); border-radius:10px;
+      padding:10px; cursor:pointer; font-size:0.82rem; text-transform:uppercase; letter-spacing:0.06em; font-weight:500; color:var(--muted2); transition:all 0.2s;
+    }
+    #male:checked + label  { border-color:#3b82f6; color:#fff; background:rgba(59,130,246,0.15); }
+    #female:checked + label { border-color:var(--pink); color:#fff; background:rgba(255,59,107,0.12); }
+
+    .diet-toggle { display:flex; gap:6px; flex-wrap:wrap; }
+    .diet-toggle input { display:none; }
+    .diet-toggle label {
+      flex:1; min-width:70px; display:flex; align-items:center; justify-content:center;
+      background:var(--surface2); border:1px solid var(--border); border-radius:10px;
+      padding:9px 12px; cursor:pointer; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.06em; font-weight:500; color:var(--muted2); transition:all 0.2s;
+    }
+    .diet-toggle input:checked + label { border-color:var(--gender-color); color:var(--gender-color); background:var(--gender-color-dim); }
+
+    .allergy-grid { display:flex; flex-wrap:wrap; gap:6px; }
+    .allergy-grid input { display:none; }
+    .allergy-grid label {
+      background:var(--surface2); border:1px solid var(--border); border-radius:100px;
+      padding:4px 11px; font-size:0.74rem; font-weight:500; cursor:pointer; color:var(--muted2); transition:all 0.2s;
+    }
+    /* Allergy colors */
+    #al-gluten:checked  + label { border-color:#d97706; color:#d97706; background:rgba(217,119,6,0.1); }
+    #al-laktose:checked + label { border-color:#e2e8f0; color:#e2e8f0; background:rgba(226,232,240,0.08); }
+    #al-nüsse:checked   + label { border-color:#a16207; color:#c4843a; background:rgba(161,98,7,0.12); }
+    #al-ei:checked      + label { border-color:#facc15; color:#facc15; background:rgba(250,204,21,0.1); }
+    #al-fisch:checked   + label { border-color:#3b82f6; color:#3b82f6; background:rgba(59,130,246,0.1); }
+    #al-soja:checked    + label { border-color:#4ade80; color:#4ade80; background:rgba(74,222,128,0.1); }
+
+    .btn-calc {
+      width:100%; margin-top:16px; background:var(--pink); color:#fff; border:none;
+      border-radius:10px; padding:14px; font-family:'Space Grotesk',sans-serif;
+      font-size:0.92rem; font-weight:600; letter-spacing:-0.01em; cursor:pointer;
+      transition:all 0.2s; box-shadow:0 0 20px rgba(255,59,107,0.2);
+    }
+    .btn-calc:hover { background:#e0284f; box-shadow:0 0 28px rgba(255,59,107,0.35); }
+    .error-msg { margin-top:8px; color:#f87171; font-size:0.82rem; text-align:center; display:none; }
+
+    /* ── RESULTS ── */
+    #results { display:none; flex-direction:column; gap:16px; }
+
+    /* STATS */
+    .stats-row { display:grid; grid-template-columns:1fr 1fr; }
+    .stat-cell {
+      padding:12px 16px; border-right:1px solid var(--border); border-bottom:1px solid var(--border);
+    }
+    .stat-cell:nth-child(2n) { border-right:none; }
+    .stat-cell:nth-last-child(-n+2) { border-bottom:none; }
+    .stat-label { font-size:0.62rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted2); font-weight:600; margin-bottom:6px; }
+    .stat-val { font-size:1.3rem; font-weight:700; letter-spacing:-0.04em; color:#fff; }
+    .stat-badge { display:inline-block; font-size:0.68rem; font-weight:600; padding:2px 9px; border-radius:100px; margin-top:4px; }
+
+    /* ZIEL */
+    .ziel-result { padding:16px 24px; border-top:1px solid var(--border); font-size:0.84rem; line-height:1.7; color:var(--muted2); display:none; }
+    .ziel-result.show { display:block; }
+    .ziel-result strong { color:#fff; }
+
+    /* PLAN */
+    .plan-header {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:16px 24px; border-bottom:1px solid var(--border); flex-wrap:wrap; gap:8px;
+    }
+    .plan-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+    .plan-title { font-size:0.82rem; font-weight:600; display:flex; align-items:center; gap:7px; }
+    .plan-macros { font-size:0.78rem; font-weight:600; display:flex; gap:10px; }
+
+    .plan-maintain .plan-dot { background:var(--green); }
+    .plan-build    .plan-dot { background:var(--amber); }
+    .plan-lose     .plan-dot { background:var(--pink); }
+    .plan-maintain .kcal-val { color:var(--green); }
+    .plan-build    .kcal-val { color:var(--amber); }
+    .plan-lose     .kcal-val { color:var(--pink); }
+    .plan-maintain .prot-val { color:rgba(34,197,94,0.6); }
+    .plan-build    .prot-val { color:rgba(245,158,11,0.6); }
+    .plan-lose     .prot-val { color:rgba(255,59,107,0.6); }
+
+    .meal-row { display:flex; justify-content:space-between; padding:8px 16px; border-bottom:1px solid var(--border); gap:12px; align-items:flex-start; }
+    .meal-row:last-of-type { border-bottom:none; }
+    .meal-label { font-size:0.6rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted2); font-weight:600; margin-bottom:3px; }
+    .meal-name  { font-size:0.8rem; font-weight:500; line-height:1.4; }
+    .meal-note  { font-size:0.72rem; color:var(--muted2); margin-top:3px; }
+    .meal-nums  { text-align:right; flex-shrink:0; }
+    .meal-kcal  { font-size:0.82rem; font-weight:700; letter-spacing:-0.02em; }
+    .meal-macros-mini { font-size:0.62rem; color:var(--muted2); margin-top:2px; }
+
+    .totals-row { display:flex; justify-content:flex-end; gap:16px; padding:10px 24px; background:var(--surface2); border-top:1px solid var(--border); font-size:0.75rem; flex-wrap:wrap; }
+    .total-label { color:var(--muted2); }
+    .total-item strong { color:#fff; font-weight:600; }
+
+    /* SHUFFLE */
+    .shuffle-bar { padding:12px 24px; border-bottom:1px solid var(--border); }
+    .btn-shuffle { background:var(--surface2); border:1px solid var(--border); border-radius:100px; color:var(--muted2); padding:7px 16px; font-family:'Space Grotesk',sans-serif; font-size:0.78rem; font-weight:500; cursor:pointer; transition:all 0.2s; }
+    .btn-shuffle:hover { color:#fff; border-color:#333; }
+
+    .warn-banner { margin:12px 24px 0; background:rgba(248,113,113,0.06); border:1px solid rgba(248,113,113,0.2); border-radius:8px; padding:10px 14px; font-size:0.8rem; color:#f87171; display:none; }
+
+    /* SHOP */
+    .shop-tabs { display:flex; gap:6px; padding:16px 24px 0; flex-wrap:wrap; }
+    .shop-tab { padding:5px 11px; border-radius:100px; border:1px solid var(--border); background:transparent; color:var(--muted2); font-size:0.72rem; font-weight:500; cursor:pointer; transition:all 0.2s; font-family:'Space Grotesk',sans-serif; }
+    .shop-tab.active-maintain { border-color:var(--green); color:var(--green); }
+    .shop-tab.active-build    { border-color:var(--amber); color:var(--amber); }
+    .shop-tab.active-lose     { border-color:var(--pink);  color:var(--pink); }
+    .shop-inner { padding:16px 24px 20px; }
+    .shop-head  { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+    .shop-title { font-size:0.84rem; font-weight:600; }
+    .btn-copy   { background:var(--surface2); border:1px solid var(--border); border-radius:100px; color:var(--muted2); padding:5px 12px; font-size:0.74rem; cursor:pointer; transition:all 0.2s; font-family:'Space Grotesk',sans-serif; }
+    .btn-copy:hover { color:#fff; border-color:#333; }
+    .shop-items { display:flex; flex-direction:column; gap:5px; }
+    .shop-item  { display:flex; align-items:center; gap:9px; padding:8px 12px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; font-size:0.8rem; }
+    .shop-item input[type="checkbox"] { accent-color:var(--pink); width:13px; height:13px; cursor:pointer; flex-shrink:0; }
+    .shop-item label { cursor:pointer; flex:1; color:var(--muted2); }
+    .shop-item label.checked { text-decoration:line-through; color:var(--muted); }
+
+    /* SUPP */
+    .supp-tabs { display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; }
+    .supp-grid { display:flex; flex-direction:column; }
+    .supp-item { padding:11px 0; border-bottom:1px solid var(--border); }
+    .supp-item:last-child { border-bottom:none; padding-bottom:0; }
+    .supp-name  { font-size:0.88rem; font-weight:600; color:#fff; margin-bottom:3px; }
+    .supp-desc  { font-size:0.78rem; color:var(--muted2); line-height:1.6; }
+    .supp-goal  { font-size:0.62rem; font-weight:600; padding:2px 9px; border-radius:100px; margin-top:7px; display:inline-block; text-transform:uppercase; letter-spacing:0.06em; }
+    .supp-goal-all      { background:rgba(96,165,250,0.1);  color:var(--blue); }
+    .supp-goal-build    { background:rgba(245,158,11,0.1);  color:var(--amber); }
+    .supp-goal-lose     { background:rgba(255,59,107,0.1);  color:var(--pink); }
+    .supp-goal-maintain { background:rgba(34,197,94,0.1);   color:var(--green); }
+
+
+    /* FAQ */
+    .faq-item { border-bottom:1px solid var(--border); }
+    .faq-item:last-child { border-bottom:none; }
+    .faq-q { display:flex; justify-content:space-between; align-items:center; padding:12px 0; cursor:pointer; font-size:0.82rem; font-weight:500; gap:14px; user-select:none; color:var(--muted2); transition:color 0.2s; }
+    .faq-q:hover { color:#fff; }
+    .faq-arrow { flex-shrink:0; transition:transform 0.25s; color:var(--muted); font-size:0.65rem; }
+    .faq-a { font-size:0.76rem; color:var(--muted2); line-height:1.7; max-height:0; overflow:hidden; transition:max-height 0.35s ease, padding 0.35s; }
+    .faq-item.open .faq-a { max-height:300px; padding-bottom:15px; }
+    .faq-item.open .faq-arrow { transform:rotate(180deg); }
+    .faq-item.open .faq-q { color:#fff; }
+    .faq-a strong { color:#fff; }
+
+    /* ── NAV ── */
+    .float-nav {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+      z-index: 100; display: flex; align-items: center; gap: 2px;
+      background: rgba(10,10,10,0.82);
+      backdrop-filter: blur(40px) saturate(2); -webkit-backdrop-filter: blur(40px) saturate(2);
+      border: 1px solid rgba(255,255,255,0.07); border-radius: 100px; padding: 5px;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06);
+      white-space: nowrap;
+    }
+    .fn-logo { font-weight: 700; font-size: 0.88rem; letter-spacing: -0.03em; color: #fff; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.06); border-radius: 100px; padding: 7px 13px; }
+    .fn-links { display: flex; align-items: center; padding: 0 3px; }
+    .fn-link { padding: 7px 13px; border-radius: 100px; font-size: 0.82rem; font-weight: 500; color: rgba(255,255,255,0.38); text-decoration: none; transition: all 0.2s; background: none; border: none; cursor: pointer; font-family: 'Space Grotesk', sans-serif; }
+    .fn-link:hover { color: rgba(255,255,255,0.8); background: rgba(255,255,255,0.05); }
+    .fn-link.active { color: #fff; background: rgba(255,255,255,0.09); border: 1px solid rgba(255,255,255,0.07); }
+    .fn-sep { width: 1px; height: 14px; background: rgba(255,255,255,0.07); margin: 0 2px; flex-shrink: 0; }
+    .fn-cta { background: var(--pink); color: #fff; border: none; border-radius: 100px; padding: 8px 16px; font-family: 'Space Grotesk', sans-serif; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-flex; align-items: center; box-shadow: 0 0 16px rgba(255,59,107,0.28); }
+    .fn-cta:hover { background: #e0284f; transform: scale(1.04); }
+
+    @media(max-width:600px) {
+      body { padding:80px 12px 110px; }
+      .form-grid { grid-template-columns:1fr; }
+      .form-grid .full { grid-column:1; }
+      .stats-row { grid-template-columns:1fr; }
+      .stat-cell { border-right:none; border-bottom:1px solid var(--border); }
+      .stat-cell:last-child { border-bottom:none; }
+      .plan-header { flex-direction:column; align-items:flex-start; }
+      .fn-link { padding:6px 10px; font-size:0.78rem; }
+      .fn-cta  { padding:7px 13px; }
+    }
+    /* ── SAVED BANNER ── */
+    .saved-banner {
+      display: none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+      z-index: 99; align-items: center; gap: 10px;
+      background: rgba(10,10,10,0.88);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.08); border-radius: 100px;
+      padding: 8px 8px 8px 16px; white-space: nowrap;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      animation: slideUp 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes slideUp { from { opacity:0; transform:translateX(-50%) translateY(12px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
+    .saved-banner-text { font-size: 0.76rem; color: rgba(255,255,255,0.5); }
+    .saved-banner-text strong { color: rgba(255,255,255,0.85); font-weight: 600; }
+    .saved-banner-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+    .saved-banner-btn {
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 100px; padding: 5px 12px; font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.74rem; font-weight: 600; color: rgba(255,255,255,0.7);
+      cursor: pointer; transition: all 0.2s;
+    }
+    .saved-banner-btn:hover { background: rgba(255,255,255,0.14); color: #fff; }
+
+  </style>
+</head>
+<body>
+
+<nav class="float-nav">
+  <div class="fn-links">
+    <a href="index.html" class="fn-link active">Essensplan</a>
+    <a href="trainingsplan.html" class="fn-link">Trainingsplan</a>
+  </div>
+  <span class="fn-sep"></span>
+  <a href="#" class="fn-cta" id="btn-nav-start" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;">Start</a>
+</nav>
+
+<div class="page">
+
+
+
+  <!-- RECHNER -->
+  <div class="card" id="rechner-card">
+    <div class="card-body" style="padding-top:20px; padding-bottom:20px">
+      <div class="form-grid">
+        <div class="field full">
+          <label>Geschlecht</label>
+          <div class="gender-toggle">
+            <input type="radio" name="gender" id="male" value="male" checked>
+            <label for="male">Männlich</label>
+            <input type="radio" name="gender" id="female" value="female">
+            <label for="female">Weiblich</label>
+          </div>
+        </div>
+        <div class="field">
+          <label for="age">Alter</label>
+          <input type="number" id="age" value="30" min="10" max="100">
+        </div>
+        <div class="field">
+          <label for="height">Größe (cm)</label>
+          <input type="number" id="height" value="178" min="100" max="250">
+        </div>
+        <div class="field">
+          <label for="weight">Gewicht (kg)</label>
+          <input type="number" id="weight" value="80" min="30" max="300">
+        </div>
+        <div class="field">
+          <label for="ziel-kg">Zielgewicht (optional)</label>
+          <input type="number" id="ziel-kg" placeholder="z.B. 75" min="30" max="300">
+        </div>
+        <div class="field full">
+          <label for="activity">Aktivitätslevel</label>
+          <select id="activity">
+            <option value="1.2">Sehr wenig aktiv – kein Sport</option>
+            <option value="1.375" selected>Leicht aktiv – 1–3× / Woche</option>
+            <option value="1.55">Moderat aktiv – 3–5× / Woche</option>
+            <option value="1.725">Sehr aktiv – 6–7× / Woche</option>
+            <option value="1.9">Extrem aktiv – täglich / Profi</option>
+          </select>
+        </div>
+        <div class="field full">
+          <label>Ernährungsweise</label>
+          <div class="diet-toggle">
+            <input type="radio" name="diet" id="diet-all" value="all" checked><label for="diet-all">Alles</label>
+            <input type="radio" name="diet" id="diet-veg" value="vegetarisch"><label for="diet-veg">Vegetarisch</label>
+            <input type="radio" name="diet" id="diet-vegan" value="vegan"><label for="diet-vegan">Vegan</label>
+          </div>
+        </div>
+        <div class="field full">
+          <label>Allergien & Unverträglichkeiten</label>
+          <div class="allergy-grid">
+            <input type="checkbox" id="al-gluten"  value="gluten"><label for="al-gluten">Gluten</label>
+            <input type="checkbox" id="al-laktose" value="laktose"><label for="al-laktose">Laktose</label>
+            <input type="checkbox" id="al-nüsse"   value="nüsse"><label for="al-nüsse">Nüsse</label>
+            <input type="checkbox" id="al-ei"      value="ei"><label for="al-ei">Ei</label>
+            <input type="checkbox" id="al-fisch"   value="fisch"><label for="al-fisch">Fisch</label>
+            <input type="checkbox" id="al-soja"    value="soja"><label for="al-soja">Soja</label>
+          </div>
+        </div>
+      </div>
+      <button class="btn-calc" id="btn-calc" onclick="calculate()">Berechnen & Essensplan anzeigen</button>
+      <p class="error-msg" id="error"></p>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="results" style="display:none;flex-direction:column;gap:80px">
+
+    <!-- STATS -->
+    <div class="card">
+      <div class="card-header"><span class="card-tag">Deine Werte</span></div>
+      <div class="stats-row">
+        <div class="stat-cell">
+          <div class="stat-label">BMI</div>
+          <div class="stat-val" id="s-bmi">—</div>
+          <div class="stat-badge" id="s-bmi-label">—</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-label">Wasserbedarf</div>
+          <div class="stat-val" id="s-water">—</div>
+          <div class="stat-badge" style="background:rgba(96,165,250,0.1);color:var(--blue)">täglich</div>
+        </div>
+      </div>
+      <div id="s-water-note" style="display:none;padding:10px 16px 14px;font-size:0.72rem;color:var(--muted2);line-height:1.6;border-top:1px solid var(--border)">
+        ⚕️ <strong style="color:rgba(255,255,255,0.6)">Hinweis:</strong> Personen mit Herz- oder Nierenerkrankungen sollten diese Werte unbedingt mit ihrem Arzt absprechen – hier gilt oft eine Trinkmengenbeschränkung.
+      </div>
+      <div class="ziel-result" id="ziel-result"></div>
+      <div id="adipo-note" style="display:none;padding:10px 16px 14px;font-size:0.72rem;color:var(--muted2);line-height:1.6;border-top:1px solid var(--border)"></div>
+    </div>
+
+
+    <!-- TRAININGSPLAN LINK -->
+    <div class="card" id="training-link-card" style="display:none">
+      <div class="card-body" style="padding:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted2);margin-bottom:4px">Nächster Schritt</div>
+          <div style="font-size:0.92rem;font-weight:600;letter-spacing:-0.02em">Passender Trainingsplan</div>
+          <div id="training-link-desc" style="font-size:0.74rem;color:var(--muted2);margin-top:3px"></div>
+        </div>
+        <a href="trainingsplan.html" id="btn-to-training" onclick="saveTrainingPrefill()" style="background:var(--gender-color);color:#fff;border:none;border-radius:10px;padding:10px 18px;font-family:'Space Grotesk',sans-serif;font-size:0.82rem;font-weight:600;cursor:pointer;text-decoration:none;white-space:nowrap;box-shadow:0 0 16px rgba(59,130,246,0.25);transition:all 0.2s">Trainingsplan erstellen →</a>
+      </div>
+    </div>
+    <!-- ESSENSPLAN -->
+    <div class="card" id="essensplan-card">
+      <div class="card-header" style="padding-bottom:12px">
+        <span class="card-tag">Heutiger Essensplan</span>
+        <div class="shuffle-bar" style="padding:0">
+          <button class="btn-shuffle" onclick="shuffle()">Andere Gerichte</button>
+        </div>
+      </div>
+      <div class="warn-banner" id="warn-banner"></div>
+      <div id="plan-container"></div>
+    </div>
+
+    <!-- EINKAUFSLISTE -->
+    <div class="card">
+      <div class="card-header"><span class="card-tag">Einkaufsliste</span></div>
+      <div class="shop-tabs">
+        <button class="shop-tab active-maintain" onclick="showShop('maintain',this)">Gewicht halten</button>
+        <button class="shop-tab" onclick="showShop('build',this)">Muskelaufbau</button>
+        <button class="shop-tab" onclick="showShop('lose',this)">Fettabbau</button>
+      </div>
+      <div class="shop-inner">
+        <div class="shop-head">
+          <div class="shop-title" id="shop-title">Gewicht halten</div>
+          <button class="btn-copy" onclick="copyShop()">Kopieren</button>
+        </div>
+        <div class="shop-items" id="shop-items"></div>
+      </div>
+    </div>
+
+  <!-- SUPPLEMENTS -->
+  <div class="card">
+    <div class="card-header"><span class="card-tag">Supplement-Empfehlungen</span></div>
+    <div class="card-body" style="padding-top:16px">
+      <div class="supp-tabs" id="supp-tabs">
+        <button class="shop-tab active-maintain" onclick="switchSuppTab('all',this)">Alle</button>
+        <button class="shop-tab" onclick="switchSuppTab('build',this)">Muskelaufbau</button>
+        <button class="shop-tab" onclick="switchSuppTab('lose',this)">Fettabbau</button>
+        <button class="shop-tab" onclick="switchSuppTab('maintain',this)">Allgemein</button>
+      </div>
+      <div class="supp-grid" id="supp-grid"></div>
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <div class="card">
+    <div class="card-header"><span class="card-tag">Häufige Fragen</span></div>
+    <div class="card-body" style="padding-top:16px">
+      <div id="faq-list">
+        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)"><span>Was ist der Unterschied zwischen BMR und TDEE?</span><span class="faq-arrow">▼</span></div><div class="faq-a">Der <strong>BMR (Grundumsatz)</strong> ist die Energie die dein Körper in völliger Ruhe verbraucht. Der <strong>TDEE (Gesamtumsatz)</strong> berücksichtigt zusätzlich deine körperliche Aktivität. Immer den TDEE als Basis nehmen.</div></div>
+        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)"><span>Wie viel Protein brauche ich wirklich?</span><span class="faq-arrow">▼</span></div><div class="faq-a">Für <strong>Gewicht halten</strong> reichen 1,2–1,5 g/kg. Beim <strong>Muskelaufbau</strong> 1,6–2,2 g/kg. Beim <strong>Fettabbau</strong> 2,0–2,4 g/kg. Mehr als 2,5 g/kg bringt keinen Vorteil.</div></div>
+        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)"><span>Wie schnell kann ich realistisch abnehmen?</span><span class="faq-arrow">▼</span></div><div class="faq-a">Realistisch sind <strong>0,3–0,7 kg pro Woche</strong> – also 300–500 kcal Defizit täglich. Schnelleres Abnehmen führt oft zu Muskelverlust und Jo-Jo-Effekt.</div></div>
+        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)"><span>Muss ich Kalorien zählen um abzunehmen?</span><span class="faq-arrow">▼</span></div><div class="faq-a">Nicht zwingend. Fokus auf <strong>proteinreiche, sättigende Lebensmittel</strong> und weniger verarbeitete Produkte reicht oft. Am Anfang hilft Zählen aber ein Gefühl für Portionen zu entwickeln.</div></div>
+        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)"><span>Was soll ich vor und nach dem Training essen?</span><span class="faq-arrow">▼</span></div><div class="faq-a"><strong>Vorher (1–2h):</strong> Kohlenhydrate + Protein (z.B. Haferflocken + Quark). <strong>Nachher (innerhalb 2h):</strong> Protein + Kohlenhydrate (z.B. Hähnchen + Reis).</div></div>
+        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)"><span>Wie viel Wasser sollte ich täglich trinken?</span><span class="faq-arrow">▼</span></div><div class="faq-a"><strong>35 ml pro kg Körpergewicht</strong> – bei 80 kg ca. 2,8 Liter. Bei Sport oder Hitze 0,5–1 Liter extra. Kaffee und Tee zählen zur Bilanz.</div></div>
+        <div class="faq-item"><div class="faq-q" onclick="toggleFaq(this)"><span>Was ist Meal Prep und lohnt es sich?</span><span class="faq-arrow">▼</span></div><div class="faq-a"><strong>Meal Prep</strong> = Mahlzeiten für 3–5 Tage vorkochen. Spart Zeit, Geld und hält den Plan ein. Ideal: Reis, Hähnchen, Quinoa, hartgekochte Eier und Gemüse.</div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let MEALS = null, shuffleOffset = 0;
+  let lastPlans = { maintain:[], build:[], lose:[] };
+  let _maintain, _build, _lose, _protM, _protB, _protL, _weight;
+  let currentShopGoal = 'maintain';
+  const GOAL_OFFSET = { maintain:0, build:7, lose:14 };
+  const ALLERGY_KEYWORDS = {
+    gluten:  ['brot','toast','nudeln','couscous','pitta','fladenbrot','naan','knäckebrot','haferflocken','müsli','pfannkuchen','oats','granola','seitan','soba'],
+    laktose: ['milch','quark','joghurt','skyr','hüttenkäse','mozzarella','feta','käse','buttermilch','whey','raita'],
+    nüsse:   ['mandeln','walnüsse','cashews','nussmix','mandelmus','erdnuss','erdnussbutter'],
+    ei:      ['eier','ei','rührei','spiegelei','omelette','pfannkuchen','shakshuka','falafel'],
+    fisch:   ['lachs','thunfisch','forelle','makrele','kabeljau','garnelen','räucherlachs','sushi'],
+    soja:    ['tofu','tempeh','sojajoghurt','sojadrink','edamame','sojasoße','soja','erbsenprotein']
+  };
+
+  async function loadMeals() {
+    try { const r = await fetch('gerichte.json'); if(!r.ok) throw 0; MEALS = await r.json(); }
+    catch(e) { showError('gerichte.json konnte nicht geladen werden.'); }
+  }
+  function showError(msg) { const e=document.getElementById('error'); e.textContent=msg; e.style.display='block'; }
+
+  function getFilteredList(cat) {
+    const diet = document.querySelector('input[name="diet"]:checked').value;
+    const allergies = [...document.querySelectorAll('.allergy-grid input:checked')].map(i=>i.value);
+    return MEALS[cat].filter(m => {
+      if(diet==='vegan' && m.type!=='vegan') return false;
+      if(diet==='vegetarisch' && m.type==='normal') return false;
+      const nl = m.name.toLowerCase();
+      for(const al of allergies) if((ALLERGY_KEYWORDS[al]||[]).some(kw=>nl.includes(kw))) return false;
+      return true;
+    });
+  }
+
+  function pickMeal(list, offset) {
+    if(!list.length) return null;
+    const d=new Date(); const seed=d.getFullYear()*10000+(d.getMonth()+1)*100+d.getDate()+shuffleOffset+offset;
+    return list[seed%list.length];
+  }
+
+  function shuffle() { shuffleOffset++; renderPlans(); }
+
+  function scaleMeal(meal, kcal) {
+    const f = kcal/meal.kcal;
+    return { name:meal.name, note:meal.note||'', kcal:Math.round(meal.kcal*f), protein:Math.round(meal.protein*f), carbs:Math.round((meal.carbs||0)*f), fat:Math.round((meal.fat||0)*f), factor:f };
+  }
+
+  function buildPlan(goalKey, totalKcal, accentClass, label) {
+    const splits=[0.30,0.25,0.45], names=['Frühstück','Snack','Abendessen'], keys=['fruehstueck','snack','abendessen'];
+    let rows='', totK=0, totP=0, totC=0, totF=0; const picked=[]; let hasEmpty=false;
+    names.forEach((name,i) => {
+      const filtered = getFilteredList(keys[i]);
+      const base = pickMeal(filtered, GOAL_OFFSET[goalKey]+i*31);
+      if(!base) { hasEmpty=true; rows+=`<div class="meal-row"><div><div class="meal-label">${name}</div><div class="meal-name" style="color:#f87171">Kein Gericht – Filter lockern</div></div></div>`; picked.push(null); return; }
+      const m = scaleMeal(base, Math.round(totalKcal*splits[i]));
+      totK+=m.kcal; totP+=m.protein; totC+=m.carbs; totF+=m.fat; picked.push(m.name);
+      rows+=`<div class="meal-row"><div style="flex:1"><div class="meal-label">${name}</div><div class="meal-name">${m.name}</div>${m.note?`<div class="meal-note">${m.note}</div>`:''}</div><div class="meal-nums"><div class="meal-kcal">${m.kcal} kcal</div><div class="meal-macros-mini">P ${m.protein}g · KH ${m.carbs}g · F ${m.fat}g</div></div></div>`;
+    });
+    lastPlans[goalKey]=picked;
+    if(hasEmpty) { const w=document.getElementById('warn-banner'); w.textContent='Für manche Mahlzeiten gibt es keine passenden Gerichte – bitte Filter lockern.'; w.style.display='block'; }
+    return `<div class="plan-card ${accentClass}" style="border-top:1px solid var(--border)"><div class="plan-header"><div class="plan-title"><span class="plan-dot"></span>${label}</div><div class="plan-macros"><span class="kcal-val">${totalKcal} kcal</span><span style="color:var(--border)">·</span><span class="prot-val">${goalKey==='maintain'?_protM:goalKey==='build'?_protB:_protL}g P</span></div></div>${rows}<div class="totals-row"><div class="total-item"><span class="total-label">Gesamt:</span><strong>${totK} kcal</strong></div><div class="total-item"><span class="total-label">P:</span><strong>${totP}g</strong></div><div class="total-item"><span class="total-label">KH:</span><strong>${totC}g</strong></div><div class="total-item"><span class="total-label">F:</span><strong>${totF}g</strong></div></div></div>`;
+  }
+
+  function renderPlans() {
+    document.getElementById('warn-banner').style.display='none';
+    document.getElementById('plan-container').innerHTML =
+      buildPlan('maintain',_maintain,'plan-maintain','Gewicht halten') +
+      buildPlan('build',_build,'plan-build','Muskelaufbau') +
+      buildPlan('lose',_lose,'plan-lose','Fettabbau');
+    showShopForGoal(currentShopGoal);
+  }
+
+  // SUPPLEMENTS
+  const SUPPLEMENTS = [
+    { name:'Whey Protein', goals:['build','lose'], goalLabel:'Aufbau & Abbau', goalClass:'supp-goal-build', desc:'Unterstützt Muskelaufbau und -erhalt. Ideal nach dem Training. 1–2 Shakes täglich wenn der Proteinbedarf über Essen schwer zu erreichen ist.' },
+    { name:'Kreatin (Monohydrat)', goals:['build'], goalLabel:'Muskelaufbau', goalClass:'supp-goal-build', desc:'Das am besten erforschte Supplement. Steigert Kraft und Muskelmasse nachweislich. 3–5 g täglich – kein Laden nötig.' },
+    { name:'Omega-3 Fettsäuren', goals:['maintain','lose','build'], goalLabel:'Alle Ziele', goalClass:'supp-goal-all', desc:'Entzündungshemmend, gut für Herz und Gehirn. Besonders wichtig wenn wenig Fisch gegessen wird. 1–2 g EPA+DHA täglich.' },
+    { name:'Vitamin D3', goals:['maintain','lose','build'], goalLabel:'Alle Ziele', goalClass:'supp-goal-all', desc:'In Deutschland haben viele einen Mangel – besonders im Winter. Wichtig für Immunsystem und Wohlbefinden. 1.000–2.000 IE täglich.' },
+    { name:'L-Carnitin', goals:['lose'], goalLabel:'Fettabbau', goalClass:'supp-goal-lose', desc:'Kann den Fettstoffwechsel leicht unterstützen. Wirkung ist moderat – kein Wundermittel, aber sinnvolle Ergänzung. 1–2 g täglich.' },
+    { name:'Magnesium', goals:['maintain','build','lose'], goalLabel:'Alle Ziele', goalClass:'supp-goal-all', desc:'Wichtig für Muskelentspannung, Schlaf und über 300 Stoffwechselprozesse. 300–400 mg täglich abends.' },
+    { name:'Veganes Protein (Erbse/Reis)', goals:['build','lose'], goalLabel:'Aufbau & Abbau', goalClass:'supp-goal-build', desc:'Gute Alternative zu Whey für Veganer. Kombination aus Erbsen- und Reisprotein liefert alle essentiellen Aminosäuren.' },
+    { name:'Zink', goals:['build'], goalLabel:'Muskelaufbau', goalClass:'supp-goal-build', desc:'Wichtig für Testosteron-Produktion und Immunsystem. Besonders relevant für Sportler. 10–15 mg täglich.' },
+  ];
+
+  function switchSuppTab(key, btn) {
+    document.querySelectorAll('#supp-tabs .shop-tab').forEach(t=>t.className='shop-tab');
+    btn.className=`shop-tab active-${key==='all'?'maintain':key}`;
+    renderSupplements(key);
+  }
+
+  function renderSupplements(key) {
+    const filtered = key==='all' ? SUPPLEMENTS : SUPPLEMENTS.filter(s=>s.goals.includes(key));
+    document.getElementById('supp-grid').innerHTML = filtered.map(s=>`
+      <div class="supp-item">
+        <div class="supp-name">${s.name}</div>
+        <div class="supp-desc">${s.desc}</div>
+        <span class="supp-goal ${s.goalClass}">${s.goalLabel}</span>
+      </div>`).join('');
+  }
+  // renderSupplements called in DOMContentLoaded
+
+  // FAQ
+  function toggleFaq(el) {
+    const item=el.parentElement, open=item.classList.contains('open');
+    document.querySelectorAll('.faq-item').forEach(i=>i.classList.remove('open'));
+    if(!open) item.classList.add('open');
+  }
+
+
+  // SHOPPING
+  function showShop(key, btn) {
+    currentShopGoal=key;
+    document.querySelectorAll('.shop-tab').forEach(t=>t.className='shop-tab');
+    btn.className=`shop-tab active-${key}`;
+    showShopForGoal(key);
+  }
+  function showShopForGoal(key) {
+    const titles={maintain:'Gewicht halten',build:'Muskelaufbau',lose:'Fettabbau'};
+    document.getElementById('shop-title').textContent=titles[key];
+    const meals=(lastPlans[key]||[]).filter(Boolean);
+    const ings=[]; meals.forEach(m=>m.split('+').map(p=>p.trim()).forEach(p=>{if(p)ings.push(p);}));
+    document.getElementById('shop-items').innerHTML=ings.map((ing,i)=>`<div class="shop-item"><input type="checkbox" id="si-${key}-${i}" onchange="this.nextElementSibling.classList.toggle('checked',this.checked)"><label for="si-${key}-${i}">${ing}</label></div>`).join('')||'<p style="color:var(--muted2);font-size:0.8rem">Noch kein Plan berechnet.</p>';
+  }
+  function copyShop() {
+    const meals=(lastPlans[currentShopGoal]||[]).filter(Boolean);
+    const lines=[]; meals.forEach(m=>m.split('+').map(p=>p.trim()).forEach(p=>{if(p)lines.push('- '+p);}));
+    navigator.clipboard.writeText(lines.join('\n')).then(()=>{ const b=document.querySelector('.btn-copy'); b.textContent='Kopiert!'; setTimeout(()=>b.textContent='Kopieren',2000); });
+  }
+
+  // Gender color sync
+  function syncGenderColor() {
+    const g = document.querySelector('input[name="gender"]:checked').value;
+    const btn = document.getElementById('btn-calc');
+    const root = document.documentElement;
+    if(g === 'male') {
+      btn.style.background = '#3b82f6';
+      btn.style.boxShadow = '0 0 20px rgba(59,130,246,0.3)';
+      root.style.setProperty('--gender-color', '#3b82f6');
+      root.style.setProperty('--gender-color-dim', 'rgba(59,130,246,0.12)');
+      const tb = document.getElementById('btn-to-training'); if(tb) { tb.style.background='#3b82f6'; tb.style.boxShadow='0 0 16px rgba(59,130,246,0.25)'; }
+      const ns = document.getElementById('btn-nav-start'); if(ns) { ns.style.background='#3b82f6'; ns.style.boxShadow='0 0 16px rgba(59,130,246,0.3)'; }
+    } else {
+      btn.style.background = 'var(--pink)';
+      btn.style.boxShadow = '0 0 20px rgba(255,59,107,0.2)';
+      root.style.setProperty('--gender-color', '#ff3b6b');
+      root.style.setProperty('--gender-color-dim', 'rgba(255,59,107,0.1)');
+      const tb = document.getElementById('btn-to-training'); if(tb) { tb.style.background='var(--pink)'; tb.style.boxShadow='0 0 16px rgba(255,59,107,0.28)'; }
+      const ns = document.getElementById('btn-nav-start'); if(ns) { ns.style.background='var(--pink)'; ns.style.boxShadow='0 0 16px rgba(255,59,107,0.28)'; }
+    }
+  }
+  document.querySelectorAll('input[name="gender"]').forEach(r =>
+    r.addEventListener('change', syncGenderColor)
+  );
+
+
+  // ── TRAINING PREFILL ─────────────────────────────────────────────────────────
+  function saveTrainingPrefill() {
+    const weight  = parseFloat(document.getElementById('weight').value);
+    const zielKg  = parseFloat(document.getElementById('ziel-kg').value);
+    const activity= parseFloat(document.getElementById('activity').value);
+
+    // Derive level from activity
+    const level = activity >= 1.725 ? 'advanced' : activity >= 1.55 ? 'intermediate' : 'beginner';
+
+    // Derive days from activity
+    const days = activity >= 1.9 ? 5 : activity >= 1.725 ? 4 : activity >= 1.55 ? 3 : 3;
+
+    // Derive goal from zielKg vs weight
+    const goal = (zielKg && zielKg < weight) ? 'fat' : (zielKg && zielKg > weight) ? 'muscle' : 'fitness';
+
+    localStorage.setItem('fitti_training_prefill', JSON.stringify({ level, days, goal }));
+  }
+
+  function updateTrainingCard() {
+    const card = document.getElementById('training-link-card');
+    const desc  = document.getElementById('training-link-desc');
+    if (!card) return;
+    const weight   = parseFloat(document.getElementById('weight').value);
+    const zielKg   = parseFloat(document.getElementById('ziel-kg').value);
+    const activity = parseFloat(document.getElementById('activity').value);
+    const goal     = (zielKg && zielKg < weight) ? 'Fettabbau' : (zielKg && zielKg > weight) ? 'Muskelaufbau' : 'Allgemeine Fitness';
+    const days     = activity >= 1.9 ? 5 : activity >= 1.725 ? 4 : activity >= 1.55 ? 3 : 3;
+    desc.textContent = `${goal} · ${days}× pro Woche – aus deinem Profil abgeleitet`;
+    card.style.display = 'block';
+  }
+
+  // ── SAVE / RESTORE ──────────────────────────────────────────────────────────
+  const SAVE_KEY = 'fitti_data';
+
+  function saveData() {
+    const data = {
+      age: document.getElementById('age').value,
+      height: document.getElementById('height').value,
+      weight: document.getElementById('weight').value,
+      zielKg: document.getElementById('ziel-kg').value,
+      activity: document.getElementById('activity').value,
+      gender: document.querySelector('input[name="gender"]:checked').value,
+      diet: document.querySelector('input[name="diet"]:checked').value,
+      allergies: [...document.querySelectorAll('.allergy-grid input:checked')].map(i=>i.value),
+      savedAt: new Date().toLocaleDateString('de-DE', {day:'2-digit',month:'2-digit',year:'numeric'}) + ' · ' + new Date().toLocaleTimeString('de-DE', {hour:'2-digit',minute:'2-digit'}) + ' Uhr'
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+  }
+
+  function restoreData() {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return;
+    const d = JSON.parse(raw);
+    if (d.age)    document.getElementById('age').value    = d.age;
+    if (d.height) document.getElementById('height').value = d.height;
+    if (d.weight) document.getElementById('weight').value = d.weight;
+    if (d.zielKg) document.getElementById('ziel-kg').value = d.zielKg;
+    if (d.activity) document.getElementById('activity').value = d.activity;
+    if (d.gender) {
+      const el = document.getElementById(d.gender);
+      if (el) el.checked = true;
+    }
+    if (d.diet) {
+      const el = document.querySelector(`input[name="diet"][value="${d.diet}"]`);
+      if (el) el.checked = true;
+    }
+    if (d.allergies) {
+      d.allergies.forEach(v => {
+        const el = document.querySelector(`.allergy-grid input[value="${v}"]`);
+        if (el) el.checked = true;
+      });
+    }
+    // Show saved banner
+    const banner = document.getElementById('saved-banner');
+    if (banner) {
+      document.getElementById('saved-date').textContent = d.savedAt || '';
+      banner.style.display = 'flex';
+    }
+  }
+
+  function editData() {
+    document.getElementById('saved-banner').style.display = 'none';
+
+    // Highlight the relevant fields
+    const fields = ['weight', 'ziel-kg', 'activity'];
+    fields.forEach(id => {
+      const el = document.getElementById(id);
+      if(!el) return;
+      el.style.transition = 'border-color 0.3s, background 0.3s';
+      el.style.borderColor = '#ff3b6b';
+      el.style.background = 'rgba(255,59,107,0.08)';
+      setTimeout(() => {
+        el.style.borderColor = '';
+        el.style.background = '';
+      }, 2500);
+    });
+
+    // Scroll to weight and focus
+    setTimeout(() => {
+      document.getElementById('weight').scrollIntoView({behavior:'smooth', block:'center'});
+      setTimeout(() => document.getElementById('weight').focus(), 400);
+    }, 50);
+  }
+
+  // Prevent browser from restoring scroll position
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+
+  // Restore on load
+  window.addEventListener('DOMContentLoaded', async () => {
+    window.scrollTo(0, 0);
+    renderSupplements('all');
+    syncGenderColor();
+    restoreData();
+    if (localStorage.getItem(SAVE_KEY)) {
+      await loadMeals();
+      await calculate(true);
+    } else {
+      await loadMeals();
+    }
+  });
+
+  // BMR
+  function calcBMR(g,age,h,w) { return g==='male'?88.362+13.397*w+4.799*h-5.677*age:447.593+9.247*w+3.098*h-4.330*age; }
+
+  async function calculate(noScroll=false) {
+    document.getElementById('error').style.display='none';
+    if(!MEALS) { await loadMeals(); if(!MEALS) return; }
+    const age=parseFloat(document.getElementById('age').value);
+    const height=parseFloat(document.getElementById('height').value);
+    const weight=parseFloat(document.getElementById('weight').value);
+    const activity=parseFloat(document.getElementById('activity').value);
+    const gender=document.querySelector('input[name="gender"]:checked').value;
+    if(!age||!height||!weight||age<10||height<100||weight<30) { showError('Bitte alle Felder korrekt ausfüllen.'); return; }
+    _weight=weight;
+    const bmr=Math.round(calcBMR(gender,age,height,weight));
+    const tdee=Math.round(bmr*activity);
+    _maintain=tdee; _build=tdee+350; _lose=Math.max(tdee-400,Math.round(bmr*1.1));
+
+    // BMI
+    const bmi=(weight/((height/100)**2)).toFixed(1);
+    // BMI als Zahl für sichere Vergleiche
+    const bmiNum = parseFloat(bmi);
+    let bmiLabel,bmiColor;
+    if(bmiNum<18.5)     { bmiLabel='Untergewicht';       bmiColor='var(--blue)'; }
+    else if(bmiNum<25)  { bmiLabel='Normalgewicht';      bmiColor='var(--green)'; }
+    else if(bmiNum<30)  { bmiLabel='Übergewicht';        bmiColor='var(--amber)'; }
+    else if(bmiNum<35)  { bmiLabel='Adipositas Grad I';  bmiColor='#f97316'; }
+    else if(bmiNum<40)  { bmiLabel='Adipositas Grad II'; bmiColor='#ef4444'; }
+    else                { bmiLabel='Adipositas Grad III'; bmiColor='#dc2626'; }
+
+    // Protein-Basis: bei Adipositas (BMI ≥ 30) auf Zielgewicht oder Normalgewicht (BMI 25) umrechnen
+    const zielKgInput = parseFloat(document.getElementById('ziel-kg').value);
+    const normalWeight = Math.round(25 * (height/100)**2);
+    const protBase = bmiNum >= 30
+      ? (zielKgInput && zielKgInput < weight ? zielKgInput : normalWeight)
+      : weight;
+    const adipoNote = bmiNum >= 30;
+    _protM=Math.round(protBase*1.4); _protB=Math.round(protBase*2.0); _protL=Math.round(protBase*2.2);
+
+    // Adipositas-Hinweis anzeigen
+    const adipoEl = document.getElementById('adipo-note');
+    if(adipoEl) {
+      if(adipoNote) {
+        const basis = zielKgInput && zielKgInput < weight ? `deinem Zielgewicht (${zielKgInput} kg)` : `dem Normalgewicht (${normalWeight} kg, BMI 25)`;
+        adipoEl.innerHTML = `ℹ️ <strong style="color:rgba(255,255,255,0.7)">Protein-Anpassung:</strong> Bei Adipositas wird die Proteinmenge auf Basis von ${basis} berechnet – nicht dem Gesamtgewicht. Das verhindert unrealistisch hohe Werte.`;
+        adipoEl.style.display='block';
+      } else {
+        adipoEl.style.display='none';
+      }
+    }
+    document.getElementById('s-bmi').textContent=bmi;
+    document.getElementById('s-bmi').style.color=bmiColor;
+    const bl=document.getElementById('s-bmi-label');
+    bl.textContent=bmiLabel; bl.style.cssText=`background:${bmiColor}22;color:${bmiColor};`;
+
+    // Wasser – geschlechtsspezifisch + Sportzuschlag
+    const baseWater = gender==='male' ? weight*37 : weight*33;
+    const sportHours = activity>=1.9?2.5:activity>=1.725?1.5:activity>=1.55?1.0:activity>=1.375?0.5:0;
+    const waterMl = baseWater + (sportHours*700);
+    const liters = parseFloat((waterMl/1000).toFixed(1));
+    document.getElementById('s-water').textContent=liters+' L';
+    document.getElementById('s-water-note').style.display='block';
+
+    // Zielgewicht
+    const zielKg = zielKgInput; // reuse already-parsed value
+    const zielEl=document.getElementById('ziel-result');
+    if(zielKg&&Math.abs(weight-zielKg)>=0.5) {
+      const diff=Math.abs(weight-zielKg), plan=zielKg<weight?'lose':'build';
+      const kgW=plan==='lose'?0.4:0.3, weeks=Math.ceil(diff/kgW), months=(weeks/4.3).toFixed(1);
+      zielEl.innerHTML=`Ziel: <strong>${zielKg} kg</strong> – noch <strong>${diff.toFixed(1)} kg</strong> ${plan==='lose'?'abnehmen':'zunehmen'}<br>Geschätzte Dauer: <strong>~${weeks} Wochen</strong> (~${months} Monate) · ~${kgW} kg/Woche<br><span style="font-size:0.76rem;color:var(--muted)">Realistischer Richtwert – individuelle Ergebnisse können abweichen.</span>`;
+      zielEl.className='ziel-result show';
+    } else { zielEl.className='ziel-result'; }
+
+    shuffleOffset=0; currentShopGoal='maintain';
+    document.querySelectorAll('.shop-tab').forEach((t,i)=>t.className=i===0?'shop-tab active-maintain':'shop-tab');
+    renderPlans();
+    saveData();
+    updateTrainingCard();
+
+    const r=document.getElementById('results');
+    r.style.display='flex';
+    if(!noScroll) setTimeout(()=>r.scrollIntoView({behavior:'smooth',block:'start'}),100);
+  }
+</script>
+<!-- SAVED BANNER -->
+<div class="saved-banner" id="saved-banner">
+  <span class="saved-banner-dot"></span>
+  <span class="saved-banner-text"><strong>Daten gespeichert</strong> · <span id="saved-date"></span></span>
+  <button class="saved-banner-btn" onclick="editData()">Ändern</button>
+</div>
+
+</body>
+</html>

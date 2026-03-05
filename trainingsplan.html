@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fitti – Trainingsplan Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #000; --surface: #0d0d0d; --surface2: #141414;
+      --border: #202020; --text: #fff; --muted: #4a4a4a; --muted2: #777;
+      --pink: #ff3b6b; --pink-dim: rgba(255,59,107,0.1);
+      --accent: #ff3b6b; --accent-dim: rgba(255,59,107,0.1);
+      --green: #22c55e; --amber: #f59e0b; --blue: #60a5fa; --purple: #a78bfa;
+    }
+    body { font-family: 'Space Grotesk', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding: 80px 12px 105px; -webkit-font-smoothing: antialiased; }
+    h1,h2,h3 { font-family: 'Space Grotesk', sans-serif; font-weight: 700; }
+    .page { max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; gap: 80px; }
+
+    /* ── CARD ── */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+    .card-header { padding: 16px 20px 0; display: flex; align-items: center; justify-content: space-between; }
+    .card-tag { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted2); display: flex; align-items: center; gap: 6px; }
+    .card-tag::before { content:''; width:6px; height:6px; border-radius:50%; background:var(--accent); flex-shrink:0; }
+    .card-body { padding: 10px 16px 16px; }
+    .card-title { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; margin-bottom: 6px; }
+    .card-title span { color: var(--pink); }
+    .card-sub { font-size: 0.74rem; color: var(--muted2); line-height: 1.6; }
+
+    /* ── PROGRESS ── */
+    .progress-wrap { padding: 16px 20px 0; }
+    .progress-bar-bg { height: 2px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.5s ease; }
+    .progress-label { display: flex; justify-content: space-between; font-size: 0.68rem; color: var(--muted2); margin-top: 7px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; }
+
+    /* ── QUIZ ── */
+    .question-wrap { padding: 11px 16px 16px; }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+    .question-wrap { animation: fadeUp 0.3s ease both; }
+    .q-num { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent); margin-bottom: 8px; font-weight: 600; }
+    .q-text { font-size: clamp(1.1rem, 3vw, 1.4rem); font-weight: 700; letter-spacing: -0.03em; margin-bottom: 6px; line-height: 1.2; }
+    .q-hint { font-size: 0.8rem; color: var(--muted2); margin-bottom: 20px; line-height: 1.5; }
+
+    .options-grid { display: flex; flex-direction: column; gap: 6px; }
+    .options-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .option-btn {
+      display: flex; align-items: center; gap: 12px; padding: 10px 13px;
+      background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
+      cursor: pointer; text-align: left; width: 100%;
+      font-family: 'Space Grotesk', sans-serif; color: var(--muted2);
+      transition: border-color 0.15s, background 0.15s, color 0.15s;
+    }
+    .option-btn:hover { border-color: #333; color: #fff; }
+    .option-btn.selected { border-color: var(--accent); color: #fff; background: var(--accent-dim); }
+    .option-icon { font-size: 1.2rem; flex-shrink: 0; }
+    .option-label { font-weight: 600; font-size: 0.84rem; }
+    .option-desc { font-size: 0.7rem; color: var(--muted2); margin-top: 1px; }
+    .option-btn.selected .option-desc { color: rgba(255,255,255,0.45); }
+    .multi-hint { font-size: 0.68rem; color: var(--pink); margin-bottom: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+
+    .nav-btns { display: flex; gap: 10px; margin-top: 20px; }
+    .btn-back { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 18px; font-family: 'Space Grotesk', sans-serif; font-size: 0.84rem; font-weight: 500; cursor: pointer; color: var(--muted2); transition: all 0.2s; }
+    .btn-back:hover { color: #fff; border-color: #333; }
+    .btn-next { flex: 1; background: var(--surface2); color: var(--muted); border: 1px solid var(--border); border-radius: 10px; padding: 12px; font-family: 'Space Grotesk', sans-serif; font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: all 0.2s; opacity: 0.4; }
+    .btn-next.ready { opacity: 1; color: var(--muted2); }
+    .btn-next.ready:hover { color: #fff; border-color: #333; }
+    .btn-next.generate { background: var(--pink); color: #fff; border-color: transparent; opacity: 1; box-shadow: 0 0 20px rgba(255,59,107,0.25); }
+    .btn-next.generate:hover { background: #e0284f; }
+
+    /* ── RESULT ── */
+    #result-section { display: none; flex-direction: column; gap: 80px; }
+
+    .result-badge { display: inline-block; font-size: 0.62rem; font-weight: 600; padding: 3px 11px; border-radius: 100px; background: var(--pink-dim); color: var(--pink); border: 1px solid rgba(255,59,107,0.2); margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.08em; }
+    .result-name { font-size: clamp(1.4rem, 3.5vw, 2rem); font-weight: 700; letter-spacing: -0.04em; line-height: 1.05; margin-bottom: 12px; }
+    .result-name span { color: var(--pink); }
+    .result-desc { font-size: 0.84rem; color: var(--muted2); line-height: 1.7; margin-bottom: 20px; }
+    .result-stats { display: grid; grid-template-columns: repeat(3,1fr); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .r-stat { padding: 16px 18px; border-right: 1px solid var(--border); }
+    .r-stat:last-child { border-right: none; }
+    .r-stat-val { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.03em; color: var(--pink); }
+    .r-stat-label { font-size: 0.62rem; color: var(--muted2); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+
+    /* WEEK */
+    .week-grid { display: flex; flex-direction: column; }
+    .week-day { display: flex; align-items: center; gap: 80px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+    .week-day:last-child { border-bottom: none; }
+    .day-name { font-weight: 700; font-size: 0.72rem; min-width: 32px; color: var(--muted2); text-transform: uppercase; letter-spacing: 0.06em; }
+    .day-label { flex: 1; font-size: 0.84rem; font-weight: 500; color: var(--muted2); }
+    .week-day[data-type="train"] .day-label { color: #fff; }
+    .day-badge { font-size: 0.62rem; font-weight: 600; padding: 3px 9px; border-radius: 100px; text-transform: uppercase; letter-spacing: 0.04em; flex-shrink: 0; }
+    .badge-train { background: var(--pink-dim); color: var(--pink); }
+    .badge-rest  { background: var(--surface2); color: var(--muted2); }
+
+    /* EXERCISES */
+    .ex-tag { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted2); font-weight: 600; margin-bottom: 4px; }
+    .ex-title { font-size: 1rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 16px; }
+    .ex-table { width: 100%; border-collapse: collapse; }
+    .ex-table th { text-align: left; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 0 10px 10px 0; border-bottom: 1px solid var(--border); font-weight: 600; }
+    .ex-table th:last-child { display: none; }
+    .ex-table td { padding: 9px 8px 9px 0; border-bottom: 1px solid var(--border); font-size: 0.82rem; color: var(--muted2); vertical-align: top; }
+    .ex-table td:last-child { display: none; }
+    .ex-table tr:last-child td { border-bottom: none; }
+    .ex-table td:first-child { color: #fff; font-weight: 500; }
+    .ex-num { font-size: 0.6rem; color: var(--muted); font-weight: 600; margin-right: 6px; }
+    .mtag { font-size: 0.62rem; padding: 2px 7px; border-radius: 100px; background: var(--surface2); border: 1px solid var(--border); color: var(--muted2); display: inline-block; margin: 2px 2px 0 0; }
+
+    /* TIPS */
+    .tip-item { display: flex; gap: 14px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 0.78rem; color: var(--muted2); line-height: 1.6; }
+    .tip-item:last-child { border-bottom: none; }
+    .tip-num { font-size: 0.68rem; font-weight: 700; color: var(--pink); flex-shrink: 0; padding-top: 2px; }
+
+    /* RESTART */
+    .result-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn-restart { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 20px; font-family: 'Space Grotesk', sans-serif; font-size: 0.84rem; font-weight: 600; cursor: pointer; color: var(--muted2); transition: all 0.2s; }
+    .btn-restart:hover { color: #fff; border-color: #333; }
+    .btn-print { background: var(--accent-dim); border: 1px solid rgba(255,59,107,0.2); border-radius: 10px; padding: 12px 20px; font-family: 'Space Grotesk', sans-serif; font-size: 0.84rem; font-weight: 600; cursor: pointer; color: var(--accent); transition: all 0.2s; }
+    .btn-print:hover { background: rgba(255,59,107,0.2); }
+
+    /* ── NAV ── */
+    .float-nav {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+      z-index: 100; display: flex; align-items: center; gap: 2px;
+      background: rgba(10,10,10,0.82);
+      backdrop-filter: blur(40px) saturate(2); -webkit-backdrop-filter: blur(40px) saturate(2);
+      border: 1px solid rgba(255,255,255,0.07); border-radius: 100px; padding: 5px;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06);
+      white-space: nowrap;
+    }
+    .fn-logo { font-weight: 700; font-size: 0.88rem; letter-spacing: -0.03em; color: #fff; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.06); border-radius: 100px; padding: 7px 13px; }
+    .fn-links { display: flex; align-items: center; padding: 0 3px; }
+    .fn-link { padding: 7px 13px; border-radius: 100px; font-size: 0.82rem; font-weight: 500; color: rgba(255,255,255,0.38); text-decoration: none; transition: all 0.2s; background: none; border: none; cursor: pointer; font-family: 'Space Grotesk', sans-serif; }
+    .fn-link:hover { color: rgba(255,255,255,0.8); background: rgba(255,255,255,0.05); }
+    .fn-link.active { color: #fff; background: rgba(255,255,255,0.09); border: 1px solid rgba(255,255,255,0.07); }
+    .fn-sep { width: 1px; height: 14px; background: rgba(255,255,255,0.07); margin: 0 2px; flex-shrink: 0; }
+    .fn-cta { background: var(--pink); color: #fff; border: none; border-radius: 100px; padding: 8px 16px; font-family: 'Space Grotesk', sans-serif; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-flex; align-items: center; box-shadow: 0 0 16px rgba(255,59,107,0.28); }
+    .fn-cta:hover { background: #e0284f; transform: scale(1.04); }
+
+    @media print {
+      .float-nav, #quiz-section, .result-btns { display: none !important; }
+      #result-section { display: flex !important; }
+      body { padding: 0; }
+    }
+    @media (max-width: 600px) {
+      body { padding: 80px 12px 110px; }
+      .options-grid-2 { grid-template-columns: 1fr; }
+      .result-stats { grid-template-columns: 1fr; }
+      .r-stat { border-right: none; border-bottom: 1px solid var(--border); }
+      .r-stat:last-child { border-bottom: none; }
+      .fn-link { padding: 6px 10px; font-size: 0.78rem; }
+    }
+
+    /* ── SAVED BANNER ── */
+    .saved-banner {
+      display: none; position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+      z-index: 99; align-items: center; gap: 10px;
+      background: rgba(10,10,10,0.88);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.08); border-radius: 100px;
+      padding: 8px 8px 8px 16px; white-space: nowrap;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      animation: slideDown 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes slideDown { from { opacity:0; transform:translateX(-50%) translateY(-12px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
+    .saved-banner-text { font-size: 0.76rem; color: rgba(255,255,255,0.5); }
+    .saved-banner-text strong { color: rgba(255,255,255,0.85); font-weight: 600; }
+    .saved-banner-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+    .saved-banner-btn {
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 100px; padding: 5px 12px; font-family: 'Space Grotesk', sans-serif;
+      font-size: 0.74rem; font-weight: 600; color: rgba(255,255,255,0.7);
+      cursor: pointer; transition: all 0.2s;
+    }
+    .saved-banner-btn:hover { background: rgba(255,255,255,0.14); color: #fff; }
+  </style>
+</head>
+<body>
+
+<nav class="float-nav">
+  <div class="fn-links">
+    <a href="index.html" class="fn-link">Essensplan</a>
+    <a href="trainingsplan.html" class="fn-link active">Trainingsplan</a>
+  </div>
+  <span class="fn-sep"></span>
+  <a href="#" class="fn-cta" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;">Start</a>
+</nav>
+
+<div class="page">
+
+
+
+  <!-- QUIZ -->
+  <div class="card" id="quiz-card">
+    <div class="progress-wrap">
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-fill" style="width:0%"></div></div>
+      <div class="progress-label"><span id="progress-text">Frage 1 von 6</span><span id="progress-pct">0%</span></div>
+    </div>
+    <div id="question-card"></div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="result-section"></div>
+
+</div>
+
+<script>
+  // ── QUESTIONS ────────────────────────────────────────────────────────────────
+  const QUESTIONS = [
+    { id:'level', num:'Frage 1 von 6', text:'Wie lange trainierst du schon?', hint:'Dein Erfahrungslevel bestimmt die Komplexität des Plans.', type:'single',
+      options:[
+        {icon:'🌱',label:'Anfänger',desc:'Weniger als 1 Jahr oder nach langer Pause',value:'beginner'},
+        {icon:'🔥',label:'Fortgeschritten',desc:'1–3 Jahre regelmäßiges Training',value:'intermediate'},
+        {icon:'⚡',label:'Erfahren',desc:'Mehr als 3 Jahre, solide Technik',value:'advanced'},
+      ]},
+    { id:'days', num:'Frage 2 von 6', text:'Wie viele Tage pro Woche kannst du trainieren?', hint:'Sei realistisch – Konstanz schlägt Quantität.', type:'single',
+      options:[
+        {icon:'',label:'2 Tage',value:2},{icon:'',label:'3 Tage',value:3},
+        {icon:'',label:'4 Tage',value:4},{icon:'',label:'5–6 Tage',value:5},
+      ]},
+    { id:'goal', num:'Frage 3 von 6', text:'Was ist dein Hauptziel?', hint:'Der Plan wird auf dein Ziel hin optimiert.', type:'single',
+      options:[
+        {icon:'💪',label:'Muskelaufbau',desc:'Mehr Muskelmasse und Definition',value:'muscle'},
+        {icon:'🏋️',label:'Kraft steigern',desc:'Stärker werden in Grundübungen',value:'strength'},
+        {icon:'🔥',label:'Fett verbrennen',desc:'Abnehmen und Körper formen',value:'fat'},
+        {icon:'🏃',label:'Allgemeine Fitness',desc:'Gesünder und beweglicher werden',value:'fitness'},
+      ]},
+    { id:'equipment', num:'Frage 4 von 6', text:'Was steht dir zur Verfügung?', hint:'Der Plan wird auf deine Ausrüstung abgestimmt.', type:'single',
+      options:[
+        {icon:'🏟️',label:'Fitnessstudio',desc:'Alle Geräte und Maschinen',value:'gym'},
+        {icon:'🏠',label:'Zuhause mit Geräten',desc:'Kurzhanteln, Langhantel oder Bank',value:'home_eq'},
+        {icon:'🤸',label:'Nur Körpergewicht',desc:'Calisthenics ohne Equipment',value:'bodyweight'},
+      ]},
+    { id:'time', num:'Frage 5 von 6', text:'Wie viel Zeit pro Training?', hint:'Inkl. Aufwärmen.', type:'single',
+      options:[
+        {icon:'',label:'Bis 45 Min.',value:'short'},{icon:'',label:'45–75 Min.',value:'medium'},
+        {icon:'',label:'75–90 Min.',value:'long'},{icon:'',label:'90+ Min.',value:'xlong'},
+      ]},
+    { id:'weakness', num:'Frage 6 von 6', text:'Welche Muskeln möchtest du besonders entwickeln?', hint:'Mehrfachauswahl möglich – bis zu 3.', type:'multi', max:3,
+      options:[
+        {icon:'',label:'Brust',value:'chest'},{icon:'',label:'Rücken',value:'back'},
+        {icon:'',label:'Beine',value:'legs'},{icon:'',label:'Schultern',value:'shoulders'},
+        {icon:'',label:'Arme',value:'arms'},{icon:'',label:'Core / Bauch',value:'core'},
+        {icon:'',label:'Alles gleichmäßig',value:'balanced'},
+      ]},
+  ];
+
+  // ── EXERCISES ─────────────────────────────────────────────────────────────────
+  const EX = {
+    bench_press:      {name:'Bankdrücken',           muscles:['Brust','Trizeps'],    sets:'4',reps:'8–10',rest:'90s'},
+    incline_press:    {name:'Schrägbankdrücken',     muscles:['Brust oben'],        sets:'3',reps:'10–12',rest:'75s'},
+    cable_fly:        {name:'Kabelzug Fly',          muscles:['Brust'],             sets:'3',reps:'12–15',rest:'60s'},
+    squat:            {name:'Kniebeuge',             muscles:['Quads','Gesäß'],     sets:'4',reps:'6–8',rest:'2min'},
+    leg_press:        {name:'Beinpresse',            muscles:['Quads','Gesäß'],     sets:'3',reps:'10–12',rest:'90s'},
+    leg_curl:         {name:'Beinbeuger',            muscles:['Hamstrings'],        sets:'3',reps:'10–12',rest:'75s'},
+    calf_raise:       {name:'Wadenheben',            muscles:['Waden'],             sets:'4',reps:'15–20',rest:'45s'},
+    deadlift:         {name:'Kreuzheben',            muscles:['Rücken','Gesäß'],    sets:'4',reps:'5–6',rest:'2–3min'},
+    pulldown:         {name:'Latzug',                muscles:['Rücken','Bizeps'],   sets:'4',reps:'8–10',rest:'75s'},
+    cable_row:        {name:'Kabel-Rudern',          muscles:['Rücken'],            sets:'3',reps:'10–12',rest:'75s'},
+    ohp:              {name:'Schulterdrücken',       muscles:['Schultern','Triz.'], sets:'4',reps:'8–10',rest:'90s'},
+    lateral_raise:    {name:'Seitheben',             muscles:['Schultern seitl.'],  sets:'4',reps:'12–15',rest:'60s'},
+    face_pull:        {name:'Face Pull',             muscles:['Schultern hinten'],  sets:'3',reps:'15–20',rest:'45s'},
+    barbell_curl:     {name:'Bizeps Curl (SZ)',      muscles:['Bizeps'],            sets:'3',reps:'10–12',rest:'60s'},
+    tricep_push:      {name:'Trizeps Pushdown',      muscles:['Trizeps'],           sets:'3',reps:'12–15',rest:'60s'},
+    rdl:              {name:'Romanian Deadlift',     muscles:['Hamstrings','Gesäß'],sets:'3',reps:'10–12',rest:'75s'},
+    hip_thrust:       {name:'Hip Thrust',            muscles:['Gesäß'],             sets:'4',reps:'10–12',rest:'75s'},
+    pullup:           {name:'Klimmzüge',             muscles:['Rücken','Bizeps'],   sets:'4',reps:'6–10',rest:'90s'},
+    plank:            {name:'Plank',                 muscles:['Core'],              sets:'3',reps:'30–60s',rest:'45s'},
+    ab_wheel:         {name:'Ab Wheel',              muscles:['Core'],              sets:'3',reps:'10–15',rest:'60s'},
+    pushup:           {name:'Liegestütze',           muscles:['Brust','Trizeps'],   sets:'4',reps:'10–20',rest:'60s'},
+    pike_pushup:      {name:'Pike Liegestütze',      muscles:['Schultern'],         sets:'3',reps:'10–15',rest:'60s'},
+    dip:              {name:'Dips (Stuhl)',           muscles:['Trizeps','Brust'],   sets:'3',reps:'10–15',rest:'60s'},
+    bodyweight_squat: {name:'Kniebeuge KG',          muscles:['Quads','Gesäß'],     sets:'4',reps:'15–20',rest:'60s'},
+    lunges:           {name:'Ausfallschritte',       muscles:['Quads','Gesäß'],     sets:'3',reps:'12/Seite',rest:'60s'},
+    glute_bridge:     {name:'Glute Bridge',          muscles:['Gesäß'],             sets:'4',reps:'15–20',rest:'45s'},
+    inverted_row:     {name:'Rudern (Tisch)',        muscles:['Rücken'],            sets:'4',reps:'10–15',rest:'60s'},
+    superman:         {name:'Superman',              muscles:['Rücken unten'],      sets:'3',reps:'15',rest:'45s'},
+    mountain_climber: {name:'Mountain Climbers',     muscles:['Core'],              sets:'3',reps:'30s',rest:'45s'},
+    burpee:           {name:'Burpees',               muscles:['Ganzkörper'],        sets:'3',reps:'10–15',rest:'60s'},
+    jump_squat:       {name:'Sprungkniebeuge',       muscles:['Quads','Gesäß'],     sets:'3',reps:'10–12',rest:'75s'},
+    hollow_body:      {name:'Hollow Body Hold',      muscles:['Core'],              sets:'3',reps:'20–40s',rest:'45s'},
+    leg_raise:        {name:'Beinheben liegend',     muscles:['Core unten'],        sets:'3',reps:'12–15',rest:'45s'},
+  };
+  const {bench_press,incline_press,cable_fly,squat,leg_press,leg_curl,calf_raise,deadlift,
+    pulldown,cable_row,ohp,lateral_raise,face_pull,barbell_curl,tricep_push,rdl,hip_thrust,
+    pullup,plank,ab_wheel,pushup,pike_pushup,dip,bodyweight_squat,lunges,glute_bridge,
+    inverted_row,superman,mountain_climber,burpee,jump_squat,hollow_body,leg_raise} = EX;
+
+  // ── GENERATOR ─────────────────────────────────────────────────────────────────
+  function generatePlan(a) {
+    const isBW = a.equipment==='bodyweight';
+    let splitName, splitDesc, schedule, workouts;
+
+    if (a.days<=2 || (a.level==='beginner' && a.days<=3)) {
+      splitName='Ganzkörper-Plan';
+      splitDesc='Jede Einheit trainierst du den gesamten Körper. Ideal für Einsteiger und alle mit wenig Zeit – jeder Muskel wird mehrfach pro Woche stimuliert.';
+      schedule = a.days<=2
+        ? [{day:'Mo',label:'Ganzkörper A',type:'train'},{day:'Di',label:'Ruhetag',type:'rest'},{day:'Mi',label:'Ganzkörper B',type:'train'},{day:'Do',label:'Ruhetag',type:'rest'},{day:'Fr',label:'Ruhetag',type:'rest'},{day:'Sa',label:'Ruhetag',type:'rest'},{day:'So',label:'Ruhetag',type:'rest'}]
+        : [{day:'Mo',label:'Ganzkörper A',type:'train'},{day:'Di',label:'Ruhetag',type:'rest'},{day:'Mi',label:'Ganzkörper B',type:'train'},{day:'Do',label:'Ruhetag',type:'rest'},{day:'Fr',label:'Ganzkörper C',type:'train'},{day:'Sa',label:'Ruhetag',type:'rest'},{day:'So',label:'Ruhetag',type:'rest'}];
+      workouts = isBW
+        ? [{title:'Ganzkörper A',sub:'Brust & Beine',exercises:[pushup,bodyweight_squat,inverted_row,lunges,pike_pushup,glute_bridge,plank]},
+           {title:'Ganzkörper B',sub:'Rücken & Schultern',exercises:[inverted_row,jump_squat,dip,glute_bridge,mountain_climber,superman,leg_raise]},
+           {title:'Ganzkörper C',sub:'Core & Ausdauer',exercises:[pushup,bodyweight_squat,burpee,hollow_body,lunges,mountain_climber,leg_raise]}]
+        : [{title:'Ganzkörper A',sub:'Drücken & Beine',exercises:[squat,bench_press,pulldown,ohp,rdl,lateral_raise,plank]},
+           {title:'Ganzkörper B',sub:'Ziehen & Beine',exercises:[deadlift,incline_press,cable_row,hip_thrust,leg_curl,barbell_curl,ab_wheel]},
+           {title:'Ganzkörper C',sub:'Volumen & Core',exercises:[leg_press,cable_fly,pullup,face_pull,calf_raise,tricep_push,plank]}];
+
+    } else if (a.days===3) {
+      splitName='Push / Pull / Legs';
+      splitDesc='Drücken, Ziehen, Beine – klassisch und hocheffektiv. Verwandte Muskeln gemeinsam trainieren, volle Erholungszeit garantiert.';
+      schedule=[{day:'Mo',label:'Push – Brust, Schultern, Trizeps',type:'train'},{day:'Di',label:'Pull – Rücken, Bizeps',type:'train'},{day:'Mi',label:'Legs – Beine, Waden',type:'train'},{day:'Do',label:'Ruhetag',type:'rest'},{day:'Fr',label:'Ruhetag',type:'rest'},{day:'Sa',label:'Ruhetag',type:'rest'},{day:'So',label:'Ruhetag',type:'rest'}];
+      workouts = isBW
+        ? [{title:'Push',sub:'Brust · Schultern · Trizeps',exercises:[pushup,pike_pushup,dip,mountain_climber,plank]},
+           {title:'Pull',sub:'Rücken · Bizeps',exercises:[inverted_row,pullup,superman,mountain_climber,leg_raise]},
+           {title:'Legs',sub:'Quads · Gesäß · Waden',exercises:[bodyweight_squat,lunges,glute_bridge,jump_squat,hollow_body]}]
+        : [{title:'Push',sub:'Brust · Schultern · Trizeps',exercises:[bench_press,incline_press,ohp,lateral_raise,cable_fly,tricep_push,face_pull]},
+           {title:'Pull',sub:'Rücken · Bizeps',exercises:[deadlift,pullup,cable_row,pulldown,barbell_curl,face_pull,ab_wheel]},
+           {title:'Legs',sub:'Quads · Hamstrings · Waden',exercises:[squat,leg_press,rdl,leg_curl,hip_thrust,calf_raise,plank]}];
+
+    } else if (a.days===4) {
+      splitName='Upper / Lower Split';
+      splitDesc='Oberkörper und Unterkörper im Wechsel – jeder Muskel zweimal pro Woche mit hohem Volumen. Optimal für Muskelaufbau bei 4 Tagen.';
+      schedule=[{day:'Mo',label:'Upper A – Oberkörper Kraft',type:'train'},{day:'Di',label:'Lower A – Unterkörper Kraft',type:'train'},{day:'Mi',label:'Ruhetag',type:'rest'},{day:'Do',label:'Upper B – Oberkörper Volumen',type:'train'},{day:'Fr',label:'Lower B – Unterkörper Volumen',type:'train'},{day:'Sa',label:'Ruhetag',type:'rest'},{day:'So',label:'Ruhetag',type:'rest'}];
+      workouts = isBW
+        ? [{title:'Upper A',sub:'Kraft Oberkörper',exercises:[pushup,inverted_row,pike_pushup,dip,plank]},
+           {title:'Lower A',sub:'Kraft Unterkörper',exercises:[bodyweight_squat,glute_bridge,lunges,jump_squat,leg_raise]},
+           {title:'Upper B',sub:'Volumen Oberkörper',exercises:[pushup,inverted_row,dip,pike_pushup,hollow_body]},
+           {title:'Lower B',sub:'Volumen Unterkörper',exercises:[lunges,glute_bridge,jump_squat,bodyweight_squat,mountain_climber]}]
+        : [{title:'Upper A',sub:'Kraft Oberkörper',exercises:[bench_press,pullup,ohp,cable_row,barbell_curl,tricep_push,face_pull]},
+           {title:'Lower A',sub:'Kraft Unterkörper',exercises:[squat,deadlift,hip_thrust,rdl,calf_raise,plank]},
+           {title:'Upper B',sub:'Volumen Oberkörper',exercises:[incline_press,pulldown,lateral_raise,cable_row,cable_fly,barbell_curl,ab_wheel]},
+           {title:'Lower B',sub:'Volumen Unterkörper',exercises:[leg_press,leg_curl,hip_thrust,calf_raise,plank,ab_wheel]}];
+
+    } else {
+      splitName='Push / Pull / Legs (2×)';
+      splitDesc='Jeder Muskel zweimal pro Woche – maximales Volumen und Frequenz. Für Erfahrene die den nächsten Schritt machen wollen.';
+      schedule=[{day:'Mo',label:'Push A',type:'train'},{day:'Di',label:'Pull A',type:'train'},{day:'Mi',label:'Legs A',type:'train'},{day:'Do',label:'Ruhetag',type:'rest'},{day:'Fr',label:'Push B',type:'train'},{day:'Sa',label:'Pull B',type:'train'},{day:'So',label:a.days>=5?'Legs B':'Ruhetag',type:a.days>=5?'train':'rest'}];
+      workouts = isBW
+        ? [{title:'Push A',sub:'Brust · Schultern · Trizeps',exercises:[pushup,pike_pushup,dip,mountain_climber,plank]},
+           {title:'Pull A',sub:'Rücken · Bizeps',exercises:[pullup,inverted_row,superman,mountain_climber,leg_raise]},
+           {title:'Legs A',sub:'Quad-Fokus',exercises:[bodyweight_squat,jump_squat,lunges,glute_bridge,hollow_body]},
+           {title:'Push B',sub:'Schulter-Fokus',exercises:[pike_pushup,pushup,dip,mountain_climber,hollow_body]},
+           {title:'Pull B',sub:'Volumen Rücken',exercises:[inverted_row,pullup,superman,leg_raise,plank]},
+           {title:'Legs B',sub:'Posterior-Fokus',exercises:[glute_bridge,lunges,jump_squat,bodyweight_squat,leg_raise]}]
+        : [{title:'Push A',sub:'Brust · Schultern · Trizeps',exercises:[bench_press,ohp,incline_press,lateral_raise,tricep_push,cable_fly,face_pull]},
+           {title:'Pull A',sub:'Rücken · Bizeps',exercises:[deadlift,pullup,cable_row,face_pull,barbell_curl,ab_wheel]},
+           {title:'Legs A',sub:'Quad-Fokus',exercises:[squat,leg_press,hip_thrust,calf_raise,plank]},
+           {title:'Push B',sub:'Schulter-Fokus',exercises:[ohp,incline_press,lateral_raise,cable_fly,tricep_push,face_pull,ab_wheel]},
+           {title:'Pull B',sub:'Volumen Rücken',exercises:[pulldown,cable_row,rdl,barbell_curl,face_pull,ab_wheel]},
+           {title:'Legs B',sub:'Posterior-Fokus',exercises:[deadlift,rdl,leg_curl,hip_thrust,calf_raise,plank]}];
+    }
+
+    const exCount = a.time==='short'?5:a.time==='medium'?6:a.time==='long'?7:8;
+    workouts = workouts.map(w=>({...w,exercises:w.exercises.slice(0,exCount).map(ex=>{
+      if(!ex) return ex; let e={...ex};
+      if(a.goal==='strength'){e.sets=String(parseInt(e.sets)+1);e.reps='4–6';e.rest='2–3min';}
+      if(a.goal==='fat'){e.rest='45–60s';}
+      return e;
+    })}));
+
+    const repsLabel = a.goal==='strength'?'4–6 Wdh.':a.goal==='fat'?'12–20 Wdh.':a.goal==='muscle'?'8–12 Wdh.':'10–15 Wdh.';
+    const freqPerWeek = schedule.filter(d=>d.type==='train').length;
+    const volLabel = a.time==='short'?'~45 Min.':a.time==='medium'?'45–75 Min.':a.time==='long'?'75–90 Min.':'90+ Min.';
+
+    const tips=[
+      'Progressive Überlastung – erhöhe Gewicht oder Wiederholungen jede Woche minimal. Das ist das Fundament jedes Fortschritts.',
+      'Schlaf ist dein wichtigstes Supplement – 7–9 Stunden pro Nacht für optimale Muskelregeneration.',
+      a.goal==='muscle'?'Iss 1,8–2,2 g Protein pro kg Körpergewicht täglich plus einen leichten Kalorienüberschuss von 200–300 kcal.':a.goal==='fat'?'Halte ein Kaloriendefizit von 300–500 kcal/Tag und iss mindestens 2 g Protein/kg um Muskeln zu erhalten.':'Achte auf min. 1,4 g Protein/kg täglich für Muskelerhalt und Regeneration.',
+      '5–10 Minuten Aufwärmen vor jedem Training – Mobilität, Kreislauf und Verletzungsschutz.',
+      'Führe ein Trainingstagebuch. Gewichte und Wiederholungen tracken ist der einfachste Weg um Fortschritt sichtbar zu machen.',
+    ];
+    if(a.level==='beginner') tips.push('Lerne als Anfänger zuerst die korrekte Technik bevor du Gewichte steigerst. Saubere Ausführung schützt vor Verletzungen.');
+
+    return {splitName,splitDesc,schedule,workouts,repsLabel,freqPerWeek,volLabel,tips};
+  }
+
+  // ── QUIZ STATE ───────────────────────────────────────────────────────────────
+  let currentQ = 0;
+  const answers = {};
+
+  function renderQuestion() {
+    const q = QUESTIONS[currentQ];
+    const pct = Math.round((currentQ / QUESTIONS.length) * 100);
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('progress-text').textContent = q.num;
+    document.getElementById('progress-pct').textContent = pct + '%';
+    const isMulti = q.type === 'multi', isLast = currentQ === QUESTIONS.length - 1;
+    const selected = answers[q.id] || (isMulti ? [] : null);
+    const optHtml = (isMulti
+      ? `<p class="multi-hint">Mehrfachauswahl (max. ${q.max})</p><div class="options-grid options-grid-2">`
+      : `<div class="options-grid">`)
+      + q.options.map(o => {
+        const sel = isMulti ? selected.includes(o.value) : selected === o.value;
+        return `<button class="option-btn${sel ? ' selected' : ''}" onclick="selectOption('${q.id}','${o.value}',${isMulti},${q.max || 1})">
+          <span class="option-icon">${o.icon}</span>
+          <div><div class="option-label">${o.label}</div>${o.desc ? `<div class="option-desc">${o.desc}</div>` : ''}</div>
+        </button>`;
+      }).join('') + '</div>';
+    const hasAns = isMulti ? (selected.length > 0) : !!selected;
+    document.getElementById('question-card').innerHTML = `
+      <div class="question-wrap">
+        <div class="q-num">${q.num}</div>
+        <div class="q-text">${q.text}</div>
+        <div class="q-hint">${q.hint}</div>
+        ${optHtml}
+        <div class="nav-btns">
+          <button class="btn-back" onclick="goBack()" ${currentQ === 0 ? 'style="visibility:hidden"' : ''}>← Zurück</button>
+          <button class="btn-next${hasAns ? ' ready' : ''}${isLast && hasAns ? ' generate' : ''}" onclick="goNext()">
+            ${isLast ? 'Trainingsplan erstellen →' : 'Weiter →'}
+          </button>
+        </div>
+      </div>`;
+  }
+
+  function selectOption(qId, value, isMulti, max) {
+    if (isMulti) {
+      let a = answers[qId] || [];
+      a.includes(value) ? a = a.filter(v => v !== value) : a.length < max && (a = [...a, value]);
+      answers[qId] = a;
+    } else {
+      answers[qId] = value;
+    }
+    renderQuestion();
+    if (!isMulti) setTimeout(goNext, 280);
+  }
+
+  function goNext() {
+    const q = QUESTIONS[currentQ], ans = answers[q.id];
+    if (!ans || (Array.isArray(ans) && ans.length === 0)) return;
+    if (currentQ < QUESTIONS.length - 1) { currentQ++; renderQuestion(); }
+    else showResult();
+  }
+
+  function goBack() {
+    if (currentQ > 0) { currentQ--; renderQuestion(); }
+  }
+
+  // ── RESULT ────────────────────────────────────────────────────────────────────
+  function showResult(noScroll=false) {
+    const plan = generatePlan(answers);
+    document.getElementById('quiz-card').style.display = 'none';
+
+    const weekHtml = plan.schedule.map(d => `
+      <div class="week-day" data-type="${d.type}">
+        <div class="day-name">${d.day}</div>
+        <div class="day-label">${d.label}</div>
+        <span class="day-badge ${d.type === 'train' ? 'badge-train' : 'badge-rest'}">${d.type === 'train' ? 'Training' : 'Ruhe'}</span>
+      </div>`).join('');
+
+    const workoutsHtml = plan.workouts.map(w => `
+      <div class="card">
+        <div class="card-header"><span class="card-tag">${w.title}</span></div>
+        <div class="card-body" style="padding-top:14px">
+          <div class="ex-title">${w.sub}</div>
+          <table class="ex-table">
+            <thead><tr><th>#&nbsp; Übung</th><th>Sätze × Wdh.</th><th>Pause</th><th>Muskeln</th></tr></thead>
+            <tbody>${w.exercises.filter(Boolean).map((ex, i) => `
+              <tr>
+                <td><span class="ex-num">${i + 1}</span>${ex.name}</td>
+                <td><strong>${ex.sets} × ${ex.reps}</strong></td>
+                <td>${ex.rest}</td>
+                <td>${ex.muscles.map(m => `<span class="mtag">${m}</span>`).join('')}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>`).join('');
+
+    const tipsHtml = plan.tips.map((t, i) => `
+      <div class="tip-item">
+        <div class="tip-num">${String(i + 1).padStart(2, '0')}</div>
+        <div>${t}</div>
+      </div>`).join('');
+
+    const resultEl = document.getElementById('result-section');
+    resultEl.innerHTML = `
+      <div class="card">
+        <div class="card-body">
+          <div class="result-badge">Dein persönlicher Plan</div>
+          <div class="result-name">${plan.splitName.includes('/') ? plan.splitName.replace('/', '<span>/</span>') : plan.splitName}</div>
+          <div class="result-desc">${plan.splitDesc}</div>
+          <div class="result-stats">
+            <div class="r-stat"><div class="r-stat-val">${plan.freqPerWeek}×</div><div class="r-stat-label">pro Woche</div></div>
+            <div class="r-stat"><div class="r-stat-val" style="font-size:1rem;margin-top:4px">${plan.volLabel}</div><div class="r-stat-label">pro Einheit</div></div>
+            <div class="r-stat"><div class="r-stat-val" style="font-size:1rem;margin-top:4px">${plan.repsLabel}</div><div class="r-stat-label">Wiederholungen</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-tag">Wochenplan</span></div>
+        <div class="card-body" style="padding-top:14px">
+          <div class="week-grid">${weekHtml}</div>
+        </div>
+      </div>
+      ${workoutsHtml}
+      <div class="card">
+        <div class="card-header"><span class="card-tag">Tipps für deinen Erfolg</span></div>
+        <div class="card-body" style="padding-top:14px">${tipsHtml}</div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <div class="result-btns">
+            <button class="btn-restart" onclick="editTraining()">Neu starten</button>
+            <button class="btn-print" onclick="window.print()">Plan drucken</button>
+          </div>
+        </div>
+      </div>`;
+
+    saveTrainingAnswers();
+    resultEl.style.display = 'flex';
+    if (!noScroll) setTimeout(() => resultEl.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+  }
+
+  // ── SAVE / RESTORE ────────────────────────────────────────────────────────────
+  const TRAINING_SAVE_KEY = 'fitti_training_answers';
+
+  function saveTrainingAnswers() {
+    const data = {
+      answers: { ...answers },
+      savedAt: new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+             + ' · ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr'
+    };
+    localStorage.setItem(TRAINING_SAVE_KEY, JSON.stringify(data));
+    const banner = document.getElementById('saved-banner-training');
+    document.getElementById('saved-date-training').textContent = data.savedAt;
+    banner.style.display = 'flex';
+  }
+
+  function restoreTrainingAnswers() {
+    const raw = localStorage.getItem(TRAINING_SAVE_KEY);
+    if (!raw) return false;
+    const d = JSON.parse(raw);
+    Object.assign(answers, d.answers);
+    const banner = document.getElementById('saved-banner-training');
+    document.getElementById('saved-date-training').textContent = d.savedAt || '';
+    banner.style.display = 'flex';
+    return true;
+  }
+
+  function editTraining() {
+    document.getElementById('saved-banner-training').style.display = 'none';
+    document.getElementById('result-section').style.display = 'none';
+    document.getElementById('result-section').innerHTML = '';
+    document.getElementById('quiz-card').style.display = 'block';
+    document.getElementById('progress-fill').style.width = '0%';
+    currentQ = 0;
+    Object.keys(answers).forEach(k => delete answers[k]);
+    localStorage.removeItem('fitti_prefill_shown');
+    renderQuestion();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ── GENDER COLOR ──────────────────────────────────────────────────────────────
+  function applyGenderColor() {
+    const saved = localStorage.getItem('fitti_data');
+    const root = document.documentElement;
+    const gender = saved ? (JSON.parse(saved).gender || 'female') : 'female';
+    if (gender === 'male') {
+      root.style.setProperty('--accent', '#3b82f6');
+      root.style.setProperty('--accent-dim', 'rgba(59,130,246,0.12)');
+    } else {
+      root.style.setProperty('--accent', '#ff3b6b');
+      root.style.setProperty('--accent-dim', 'rgba(255,59,107,0.1)');
+    }
+  }
+  // ── PREFILL FROM ESSENSPLAN ───────────────────────────────────────────────────
+  function applyPrefill() {
+    const raw = localStorage.getItem('fitti_training_prefill');
+    if (!raw) return 0;
+    const p = JSON.parse(raw);
+    let skipped = 0;
+    if (p.level) { answers['level'] = p.level; skipped++; }
+    if (p.days)  { answers['days']  = p.days;  skipped++; }
+    if (p.goal)  { answers['goal']  = p.goal;  skipped++; }
+    if (skipped > 0) currentQ = skipped;
+    return skipped;
+  }
+
+  // ── INIT ──────────────────────────────────────────────────────────────────────
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+
+  window.addEventListener('DOMContentLoaded', () => {
+    window.scrollTo(0, 0);
+    applyGenderColor();
+
+    const hadSavedPlan = restoreTrainingAnswers();
+    if (hadSavedPlan && Object.keys(answers).length === 6) {
+      document.getElementById('quiz-card').style.display = 'none';
+      showResult(true);
+    } else {
+      const prefillCount = applyPrefill();
+      renderQuestion();
+
+      // Prefill notice – only show once, fly up after 5s
+      if (prefillCount > 0 && !localStorage.getItem('fitti_prefill_shown')) {
+        localStorage.setItem('fitti_prefill_shown', '1');
+        const card = document.getElementById('quiz-card');
+        const notice = document.createElement('div');
+        notice.style.cssText = 'margin:0 16px 12px;padding:9px 13px;background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.15);border-radius:8px;font-size:0.72rem;color:var(--muted2);line-height:1.5;transition:opacity 0.4s,transform 0.4s,max-height 0.4s,margin 0.4s,padding 0.4s;overflow:hidden;max-height:80px';
+        notice.innerHTML = `✓ <strong style="color:rgba(255,255,255,0.7)">${prefillCount} Antworten</strong> aus deinem Ernährungsprofil übernommen.`;
+        card.insertBefore(notice, card.firstChild);
+        setTimeout(() => {
+          notice.style.opacity = '0';
+          notice.style.transform = 'translateY(-16px)';
+          notice.style.maxHeight = '0';
+          notice.style.margin = '0';
+          notice.style.padding = '0';
+          setTimeout(() => notice.remove(), 450);
+        }, 5000);
+      }
+    }
+  });
+</script>
+
+<!-- SAVED BANNER -->
+<div class="saved-banner" id="saved-banner-training">
+  <span class="saved-banner-dot"></span>
+  <span class="saved-banner-text"><strong>Plan gespeichert</strong> · <span id="saved-date-training"></span></span>
+  <button class="saved-banner-btn" onclick="editTraining()">Ändern</button>
+</div>
+</body>
+</html>
