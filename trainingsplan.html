@@ -686,10 +686,28 @@
     const freqPerWeek = schedule.filter(d=>d.type==='train').length;
     const volLabel = a.time==='short'?'<45 Min.':a.time==='medium'?'45–60 Min.':a.time==='long'?'60–90 Min.':'90+ Min.';
 
+    const _diet = (() => { try { return JSON.parse(localStorage.getItem('fitti_data') || '{}').diet || 'normal'; } catch(e) { return 'normal'; } })();
+    const proteinTip = _diet === 'vegan'
+      ? (a.goal==='muscle'||a.goal==='strength'
+          ? 'Als Veganer: Setze auf Tofu, Tempeh, Hülsenfrüchte, Seitan und veganes Proteinpulver. Kombiniere pflanzliche Quellen für alle Aminosäuren. Ziel: 1,8–2,2 g/kg.'
+          : a.goal==='fat'
+          ? 'Pflanzliches Protein schützt deine Muskeln beim Abnehmen. Hülsenfrüchte, Tempeh und veganes Proteinpulver helfen dir, mindestens 2 g/kg täglich zu erreichen.'
+          : 'Achte als Veganer besonders auf vollständige Proteinversorgung: Tofu, Tempeh, Hülsenfrüchte und veganes Proteinpulver kombinieren. Ziel: 1,4 g/kg täglich.')
+      : _diet === 'vegetarisch'
+      ? (a.goal==='muscle'||a.goal==='strength'
+          ? 'Als Vegetarier: Quark, Hüttenkäse, Eier, Hülsenfrüchte und Milchprodukte sind deine besten Proteinquellen. Ziel: 1,8–2,2 g/kg.'
+          : a.goal==='fat'
+          ? 'Protein schützt deine Muskeln beim Abnehmen. Als Vegetarier: Eier, Magerquark, Hüttenkäse und Hülsenfrüchte für mindestens 2 g/kg täglich.'
+          : 'Als Vegetarier: Kombiniere Eier, Milchprodukte und Hülsenfrüchte für mindestens 1,4 g Protein/kg täglich.')
+      : (a.goal==='muscle'||a.goal==='strength'
+          ? 'Iss 1,8–2,2 g Protein pro kg Körpergewicht täglich plus einen leichten Kalorienüberschuss von 200–300 kcal.'
+          : a.goal==='fat'
+          ? 'Halte ein Kaloriendefizit von 300–500 kcal/Tag und iss mindestens 2 g Protein/kg um Muskeln zu erhalten.'
+          : 'Achte auf min. 1,4 g Protein/kg täglich für Muskelerhalt und Regeneration.');
     const tips=[
       'Progressive Überlastung – erhöhe Gewicht oder Wiederholungen jede Woche minimal. Das ist das Fundament jedes Fortschritts.',
       'Schlaf ist dein wichtigstes Supplement – 7–9 Stunden pro Nacht für optimale Muskelregeneration.',
-      a.goal==='muscle'?'Iss 1,8–2,2 g Protein pro kg Körpergewicht täglich plus einen leichten Kalorienüberschuss von 200–300 kcal.':a.goal==='fat'?'Halte ein Kaloriendefizit von 300–500 kcal/Tag und iss mindestens 2 g Protein/kg um Muskeln zu erhalten.':'Achte auf min. 1,4 g Protein/kg täglich für Muskelerhalt und Regeneration.',
+      proteinTip,
       '5–10 Minuten Aufwärmen vor jedem Training – Mobilität, Kreislauf und Verletzungsschutz.',
       'Führe ein Trainingstagebuch. Gewichte und Wiederholungen tracken ist der einfachste Weg um Fortschritt sichtbar zu machen.',
     ];
@@ -977,7 +995,18 @@
   // ── NUTRITION CARD (from Essensplan data) ─────────────────────────────────────
   function getNutritionCard() {
     const raw = localStorage.getItem('fitti_data');
-    if (!raw) return '';
+    if (!raw) return `
+      <div class="card">
+        <div class="card-body" style="padding-top:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+            <div>
+              <div style="font-size:0.82rem;font-weight:600;margin-bottom:4px">Persönliche Kalorienziele</div>
+              <div style="font-size:0.74rem;color:var(--muted2);line-height:1.6">Fülle den Ernährungsrechner aus um genaue<br>Kalorienempfehlungen für Trainings- und Ruhetage zu sehen.</div>
+            </div>
+            <a href="index.html" style="background:var(--accent-dim);border:1px solid rgba(255,59,107,0.2);border-radius:10px;padding:10px 16px;font-family:'Space Grotesk',sans-serif;font-size:0.8rem;font-weight:600;text-decoration:none;color:var(--accent);white-space:nowrap;flex-shrink:0">Ernährungsprofil →</a>
+          </div>
+        </div>
+      </div>`;
     try {
       const d = JSON.parse(raw);
       const age = parseFloat(d.age), ht = parseFloat(d.height), wt = parseFloat(d.weight);
@@ -1210,10 +1239,19 @@
   function saveTrainingAnswers() {
     const data = {
       answers: { ...answers },
+      savedTs: Date.now(),
       savedAt: new Date().toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
              + ' · ' + new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr'
     };
     localStorage.setItem(TRAINING_SAVE_KEY, JSON.stringify(data));
+    // Sync actual chosen goal/level/days back to prefill so index.html reflects correct values
+    try {
+      const prefill = JSON.parse(localStorage.getItem('fitti_training_prefill') || '{}');
+      if (answers.goal)  prefill.goal  = answers.goal;
+      if (answers.level) prefill.level = answers.level;
+      if (answers.days)  prefill.days  = answers.days;
+      localStorage.setItem('fitti_training_prefill', JSON.stringify(prefill));
+    } catch(e) {}
     const banner = document.getElementById('saved-banner-training');
     document.getElementById('saved-date-training').textContent = data.savedAt;
     banner.style.display = 'flex';
@@ -1286,6 +1324,14 @@
   window.addEventListener('DOMContentLoaded', () => {
     window.scrollTo(0, 0);
     applyGenderColor();
+
+    // Handle ?new=1 — reset and start fresh quiz (from "Neu erstellen" button on index.html)
+    if (new URLSearchParams(location.search).get('new') === '1') {
+      localStorage.removeItem(TRAINING_SAVE_KEY);
+      localStorage.removeItem('fitti_training_swaps');
+      localStorage.removeItem('fitti_prefill_shown');
+      history.replaceState(null, '', location.pathname);
+    }
 
     // Check for share URL
     const shared = parseShareURL();

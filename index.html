@@ -356,12 +356,16 @@
     <!-- TRAININGSPLAN LINK -->
     <div class="card" id="training-link-card" style="display:none">
       <div class="card-body" style="padding:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-        <div>
+        <div style="flex:1;min-width:0">
           <div style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted2);margin-bottom:4px">Nächster Schritt</div>
           <div style="font-size:0.92rem;font-weight:600;letter-spacing:-0.02em">Passender Trainingsplan</div>
           <div id="training-link-desc" style="font-size:0.74rem;color:var(--muted2);margin-top:3px"></div>
+          <div id="training-stale-hint" style="display:none;margin-top:6px;font-size:0.68rem;color:var(--amber);font-weight:600">⚠ Profil aktualisiert – Plan prüfen</div>
         </div>
-        <a href="trainingsplan.html" id="btn-to-training" onclick="saveTrainingPrefill()" style="background:var(--gender-color);color:#fff;border:none;border-radius:10px;padding:10px 18px;font-family:'Space Grotesk',sans-serif;font-size:0.82rem;font-weight:600;cursor:pointer;text-decoration:none;white-space:nowrap;box-shadow:0 0 16px rgba(59,130,246,0.25);transition:all 0.2s">Trainingsplan erstellen →</a>
+        <div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;align-items:center">
+          <a href="trainingsplan.html?new=1" id="btn-new-training" onclick="saveTrainingPrefill()" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-family:'Space Grotesk',sans-serif;font-size:0.78rem;font-weight:600;cursor:pointer;text-decoration:none;color:var(--muted2);white-space:nowrap;transition:all 0.2s">Neu erstellen</a>
+          <a href="trainingsplan.html" id="btn-to-training" onclick="saveTrainingPrefill()" style="background:var(--gender-color);color:#fff;border:none;border-radius:10px;padding:10px 18px;font-family:'Space Grotesk',sans-serif;font-size:0.82rem;font-weight:600;cursor:pointer;text-decoration:none;white-space:nowrap;box-shadow:0 0 16px rgba(59,130,246,0.25);transition:all 0.2s">Trainingsplan erstellen →</a>
+        </div>
       </div>
     </div>
     <!-- ESSENSPLAN -->
@@ -598,9 +602,11 @@
   }
 
   function updateTrainingCard() {
-    const card = document.getElementById('training-link-card');
-    const desc = document.getElementById('training-link-desc');
-    const btn  = document.getElementById('btn-to-training');
+    const card      = document.getElementById('training-link-card');
+    const desc      = document.getElementById('training-link-desc');
+    const btn       = document.getElementById('btn-to-training');
+    const btnNew    = document.getElementById('btn-new-training');
+    const staleHint = document.getElementById('training-stale-hint');
     if (!card) return;
     const weight   = parseFloat(document.getElementById('weight').value);
     const zielKg   = parseFloat(document.getElementById('ziel-kg').value);
@@ -611,20 +617,36 @@
     const savedPlan = localStorage.getItem('fitti_training_answers');
     if (savedPlan) {
       try {
-        const a = (JSON.parse(savedPlan).answers) || {};
+        const planData = JSON.parse(savedPlan);
+        const a = planData.answers || {};
         const goalLabels = { muscle: 'Muskelaufbau', fat: 'Fettabbau', fitness: 'Allgemeine Fitness', strength: 'Kraft' };
         const planGoal = goalLabels[a.goal] || derivedGoal;
         const planDays = a.days || days;
+        // Extract readable date (before " ·")
+        const dateStr = planData.savedAt ? planData.savedAt.split(' ·')[0] : '';
         let splitHtml = '';
-        if (_maintain) {
+        if (_maintain && _bmr) {
           let trainKcal, restKcal;
-          if (a.goal === 'muscle' || a.goal === 'strength') { trainKcal = _maintain + 350; restKcal = _maintain + 100; }
-          else if (a.goal === 'fat') { trainKcal = _lose; restKcal = Math.max(_maintain - 500, Math.round(_maintain * 0.82)); }
-          else { trainKcal = _maintain; restKcal = _maintain - 100; }
+          if (a.goal === 'muscle' || a.goal === 'strength') {
+            trainKcal = _maintain + 350; restKcal = _maintain + 100;
+          } else if (a.goal === 'fat') {
+            // Same formula as getNutritionCard() in trainingsplan.html
+            trainKcal = Math.max(_maintain - 200, Math.round(_bmr * 1.1));
+            restKcal  = Math.max(_maintain - 500, Math.round(_bmr * 1.05));
+          } else {
+            trainKcal = _maintain; restKcal = _maintain - 100;
+          }
           splitHtml = `<div style="margin-top:7px;display:flex;gap:16px;font-size:0.72rem;color:var(--muted2)"><span>Training: <strong style="color:#fff">${trainKcal} kcal</strong></span><span>Ruhe: <strong style="color:var(--muted2)">${restKcal} kcal</strong></span></div>`;
         }
-        desc.innerHTML = `${planGoal} · ${planDays}× / Woche <span style="color:var(--green);font-size:0.66rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">● Aktiv</span>${splitHtml}`;
+        desc.innerHTML = `${planGoal} · ${planDays}× / Woche <span style="color:var(--green);font-size:0.66rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">● Aktiv</span>${dateStr ? ` <span style="color:var(--muted);font-size:0.66rem">· ${dateStr}</span>` : ''}${splitHtml}`;
         if (btn) btn.textContent = 'Plan ansehen →';
+        if (btnNew) btnNew.style.display = 'inline-flex';
+        // Stale warning: show if profile was saved >1h after the plan
+        if (staleHint) {
+          const fittiTs    = (JSON.parse(localStorage.getItem(SAVE_KEY) || '{}').savedTs) || 0;
+          const trainingTs = planData.savedTs || 0;
+          staleHint.style.display = (fittiTs && trainingTs && fittiTs > trainingTs + 3600000) ? 'block' : 'none';
+        }
         card.style.display = 'block';
         return;
       } catch(e) {}
@@ -632,6 +654,8 @@
 
     desc.textContent = `${derivedGoal} · ${days}× pro Woche – aus deinem Profil abgeleitet`;
     if (btn) btn.textContent = 'Trainingsplan erstellen →';
+    if (btnNew) btnNew.style.display = 'none';
+    if (staleHint) staleHint.style.display = 'none';
     card.style.display = 'block';
   }
 
@@ -648,6 +672,7 @@
       gender: document.querySelector('input[name="gender"]:checked').value,
       diet: document.querySelector('input[name="diet"]:checked').value,
       allergies: [...document.querySelectorAll('.allergy-grid input:checked')].map(i=>i.value),
+      savedTs: Date.now(),
       savedAt: new Date().toLocaleDateString('de-DE', {day:'2-digit',month:'2-digit',year:'numeric'}) + ' · ' + new Date().toLocaleTimeString('de-DE', {hour:'2-digit',minute:'2-digit'}) + ' Uhr'
     };
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));
@@ -740,7 +765,7 @@
     _weight=weight;
     const bmr=Math.round(calcBMR(gender,age,height,weight));
     const tdee=Math.round(bmr*activity);
-    _maintain=tdee; _build=tdee+350; _lose=Math.max(tdee-400,Math.round(bmr*1.1));
+    _maintain=tdee; _build=tdee+350; _lose=Math.max(tdee-400,Math.round(bmr*1.1)); _bmr=bmr;
 
     // BMI
     const bmi=(weight/((height/100)**2)).toFixed(1);
