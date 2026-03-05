@@ -954,6 +954,55 @@
     setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity 0.3s'; setTimeout(() => t.remove(), 300); }, 2000);
   }
 
+  // ── NUTRITION CARD (from Essensplan data) ─────────────────────────────────────
+  function getNutritionCard() {
+    const raw = localStorage.getItem('fitti_data');
+    if (!raw) return '';
+    try {
+      const d = JSON.parse(raw);
+      const age = parseFloat(d.age), ht = parseFloat(d.height), wt = parseFloat(d.weight);
+      if (!age || !ht || !wt) return '';
+      const bmr = d.gender === 'male'
+        ? 88.362 + 13.397 * wt + 4.799 * ht - 5.677 * age
+        : 447.593 + 9.247 * wt + 3.098 * ht - 4.330 * age;
+      const tdee = Math.round(bmr * (parseFloat(d.activity) || 1.375));
+      const goal = answers.goal;
+      let trainKcal, restKcal, protG;
+      if (goal === 'muscle' || goal === 'strength') {
+        trainKcal = tdee + 350; restKcal = tdee + 100; protG = Math.round(wt * 2.0);
+      } else if (goal === 'fat') {
+        trainKcal = Math.max(tdee - 200, Math.round(bmr * 1.1));
+        restKcal = Math.max(tdee - 500, Math.round(bmr * 1.05));
+        protG = Math.round(wt * 2.2);
+      } else {
+        trainKcal = tdee; restKcal = tdee - 100; protG = Math.round(wt * 1.5);
+      }
+      return `
+        <div class="card">
+          <div class="card-header"><span class="card-tag">Ernährung für deinen Plan</span></div>
+          <div class="card-body" style="padding-top:14px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:10px">
+              <div style="padding:14px 16px;border-right:1px solid var(--border)">
+                <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted2);font-weight:600;margin-bottom:5px">Trainingstag</div>
+                <div style="font-size:1.3rem;font-weight:700;letter-spacing:-0.04em;color:var(--accent)">${trainKcal}</div>
+                <div style="font-size:0.7rem;color:var(--muted2);margin-top:2px">kcal empfohlen</div>
+              </div>
+              <div style="padding:14px 16px">
+                <div style="font-size:0.6rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--muted2);font-weight:600;margin-bottom:5px">Ruhetag</div>
+                <div style="font-size:1.3rem;font-weight:700;letter-spacing:-0.04em;color:var(--muted2)">${restKcal}</div>
+                <div style="font-size:0.7rem;color:var(--muted2);margin-top:2px">kcal empfohlen</div>
+              </div>
+            </div>
+            <div style="padding:10px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:space-between;font-size:0.8rem;margin-bottom:10px">
+              <span style="color:var(--muted2)">Tägliches Protein</span>
+              <strong style="color:var(--accent)">${protG}g / Tag</strong>
+            </div>
+            <a href="index.html" style="display:block;text-align:center;font-size:0.74rem;color:var(--muted2);text-decoration:none;padding:4px 0">Essensplan & Kalorienbedarf ansehen →</a>
+          </div>
+        </div>`;
+    } catch(e) { return ''; }
+  }
+
   // ── RESULT ────────────────────────────────────────────────────────────────────
   function showResult(noScroll=false) {
     const plan = currentPlan || generatePlan(answers);
@@ -1030,6 +1079,8 @@
       </div>`;
     }).join('');
 
+    const nutritionCard = getNutritionCard();
+
     const tipsHtml = plan.tips.map((t, i) => `
       <div class="tip-item">
         <div class="tip-num">${String(i + 1).padStart(2, '0')}</div>
@@ -1074,6 +1125,7 @@
       </div>
       ${workoutsHtml}
       ${deloadHtml}
+      ${nutritionCard}
       <div class="card">
         <div class="card-header"><span class="card-tag">Tipps für deinen Erfolg</span></div>
         <div class="card-body" style="padding-top:14px">${tipsHtml}</div>

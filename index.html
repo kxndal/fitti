@@ -599,14 +599,39 @@
 
   function updateTrainingCard() {
     const card = document.getElementById('training-link-card');
-    const desc  = document.getElementById('training-link-desc');
+    const desc = document.getElementById('training-link-desc');
+    const btn  = document.getElementById('btn-to-training');
     if (!card) return;
     const weight   = parseFloat(document.getElementById('weight').value);
     const zielKg   = parseFloat(document.getElementById('ziel-kg').value);
     const activity = parseFloat(document.getElementById('activity').value);
-    const goal     = (zielKg && zielKg < weight) ? 'Fettabbau' : (zielKg && zielKg > weight) ? 'Muskelaufbau' : 'Allgemeine Fitness';
-    const days     = activity >= 1.9 ? 5 : activity >= 1.725 ? 4 : activity >= 1.55 ? 3 : 3;
-    desc.textContent = `${goal} · ${days}× pro Woche – aus deinem Profil abgeleitet`;
+    const derivedGoal = (zielKg && zielKg < weight) ? 'Fettabbau' : (zielKg && zielKg > weight) ? 'Muskelaufbau' : 'Allgemeine Fitness';
+    const days = activity >= 1.9 ? 5 : activity >= 1.725 ? 4 : activity >= 1.55 ? 3 : 3;
+
+    const savedPlan = localStorage.getItem('fitti_training_answers');
+    if (savedPlan) {
+      try {
+        const a = (JSON.parse(savedPlan).answers) || {};
+        const goalLabels = { muscle: 'Muskelaufbau', fat: 'Fettabbau', fitness: 'Allgemeine Fitness', strength: 'Kraft' };
+        const planGoal = goalLabels[a.goal] || derivedGoal;
+        const planDays = a.days || days;
+        let splitHtml = '';
+        if (_maintain) {
+          let trainKcal, restKcal;
+          if (a.goal === 'muscle' || a.goal === 'strength') { trainKcal = _maintain + 350; restKcal = _maintain + 100; }
+          else if (a.goal === 'fat') { trainKcal = _lose; restKcal = Math.max(_maintain - 500, Math.round(_maintain * 0.82)); }
+          else { trainKcal = _maintain; restKcal = _maintain - 100; }
+          splitHtml = `<div style="margin-top:7px;display:flex;gap:16px;font-size:0.72rem;color:var(--muted2)"><span>Training: <strong style="color:#fff">${trainKcal} kcal</strong></span><span>Ruhe: <strong style="color:var(--muted2)">${restKcal} kcal</strong></span></div>`;
+        }
+        desc.innerHTML = `${planGoal} · ${planDays}× / Woche <span style="color:var(--green);font-size:0.66rem;font-weight:600;text-transform:uppercase;letter-spacing:0.05em">● Aktiv</span>${splitHtml}`;
+        if (btn) btn.textContent = 'Plan ansehen →';
+        card.style.display = 'block';
+        return;
+      } catch(e) {}
+    }
+
+    desc.textContent = `${derivedGoal} · ${days}× pro Woche – aus deinem Profil abgeleitet`;
+    if (btn) btn.textContent = 'Trainingsplan erstellen →';
     card.style.display = 'block';
   }
 
