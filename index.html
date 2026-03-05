@@ -377,8 +377,8 @@
         </div>
       </div>
       <div class="warn-banner" id="warn-banner"></div>
-      <div id="plan-container"></div>
     </div>
+    <div id="plan-container"></div>
 
     <!-- EINKAUFSLISTE -->
     <div class="card">
@@ -488,7 +488,7 @@
     });
     lastPlans[goalKey]=picked;
     if(hasEmpty) { const w=document.getElementById('warn-banner'); w.textContent='Für manche Mahlzeiten gibt es keine passenden Gerichte – bitte Filter lockern.'; w.style.display='block'; }
-    return `<div class="plan-card ${accentClass}" style="border-top:1px solid var(--border)"><div class="plan-header"><div class="plan-title"><span class="plan-dot"></span>${label}</div><div class="plan-macros"><span class="kcal-val">${totalKcal} kcal</span><span style="color:var(--border)">·</span><span class="prot-val">${goalKey==='maintain'?_protM:goalKey==='build'?_protB:_protL}g P</span></div></div>${rows}<div class="totals-row"><div class="total-item"><span class="total-label">Gesamt:</span><strong>${totK} kcal</strong></div><div class="total-item"><span class="total-label">P:</span><strong>${totP}g</strong></div><div class="total-item"><span class="total-label">KH:</span><strong>${totC}g</strong></div><div class="total-item"><span class="total-label">F:</span><strong>${totF}g</strong></div></div></div>`;
+    return `<div class="card plan-card ${accentClass}"><div class="plan-header"><div class="plan-title"><span class="plan-dot"></span>${label}</div><div class="plan-macros"><span class="kcal-val">${totalKcal} kcal</span><span style="color:var(--border)">·</span><span class="prot-val">${goalKey==='maintain'?_protM:goalKey==='build'?_protB:_protL}g P</span></div></div>${rows}<div class="totals-row"><div class="total-item"><span class="total-label">Gesamt:</span><strong>${totK} kcal</strong></div><div class="total-item"><span class="total-label">P:</span><strong>${totP}g</strong></div><div class="total-item"><span class="total-label">KH:</span><strong>${totC}g</strong></div><div class="total-item"><span class="total-label">F:</span><strong>${totF}g</strong></div></div></div>`;
   }
 
   function renderPlans() {
