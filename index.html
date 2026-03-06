@@ -179,6 +179,7 @@
     .supp-goal-build    { background:rgba(245,158,11,0.1);  color:var(--amber); }
     .supp-goal-lose     { background:rgba(255,59,107,0.1);  color:var(--pink); }
     .supp-goal-maintain { background:rgba(34,197,94,0.1);   color:var(--green); }
+    .supp-goal-combo    { background:rgba(139,92,246,0.1);  color:#a78bfa; }
 
 
     /* FAQ */
@@ -507,13 +508,13 @@
 
   // SUPPLEMENTS
   const SUPPLEMENTS = [
-    { name:'Whey Protein', goals:['build','lose'], goalLabel:'Aufbau & Abbau', goalClass:'supp-goal-build', desc:'Unterstützt Muskelaufbau und -erhalt. Ideal nach dem Training. 1–2 Shakes täglich wenn der Proteinbedarf über Essen schwer zu erreichen ist.' },
+    { name:'Whey Protein', goals:['build','lose'], goalLabel:'Aufbau & Abbau', goalClass:'supp-goal-combo', desc:'Unterstützt Muskelaufbau und schützt Muskelmasse beim Abnehmen. Ideal nach dem Training. 1–2 Shakes täglich wenn der Proteinbedarf über Essen schwer zu erreichen ist.' },
     { name:'Kreatin (Monohydrat)', goals:['build'], goalLabel:'Muskelaufbau', goalClass:'supp-goal-build', desc:'Das am besten erforschte Supplement. Steigert Kraft und Muskelmasse nachweislich. 3–5 g täglich – kein Laden nötig.' },
     { name:'Omega-3 Fettsäuren', goals:['maintain','lose','build'], goalLabel:'Alle Ziele', goalClass:'supp-goal-all', desc:'Entzündungshemmend, gut für Herz und Gehirn. Besonders wichtig wenn wenig Fisch gegessen wird. 1–2 g EPA+DHA täglich.' },
     { name:'Vitamin D3', goals:['maintain','lose','build'], goalLabel:'Alle Ziele', goalClass:'supp-goal-all', desc:'In Deutschland haben viele einen Mangel – besonders im Winter. Wichtig für Immunsystem und Wohlbefinden. 1.000–2.000 IE täglich.' },
     { name:'L-Carnitin', goals:['lose'], goalLabel:'Fettabbau', goalClass:'supp-goal-lose', desc:'Kann den Fettstoffwechsel leicht unterstützen. Wirkung ist moderat – kein Wundermittel, aber sinnvolle Ergänzung. 1–2 g täglich.' },
     { name:'Magnesium', goals:['maintain','build','lose'], goalLabel:'Alle Ziele', goalClass:'supp-goal-all', desc:'Wichtig für Muskelentspannung, Schlaf und über 300 Stoffwechselprozesse. 300–400 mg täglich abends.' },
-    { name:'Veganes Protein (Erbse/Reis)', goals:['build','lose'], goalLabel:'Aufbau & Abbau', goalClass:'supp-goal-build', desc:'Gute Alternative zu Whey für Veganer. Kombination aus Erbsen- und Reisprotein liefert alle essentiellen Aminosäuren.' },
+    { name:'Veganes Protein (Erbse/Reis)', goals:['build','lose'], goalLabel:'Aufbau & Abbau', goalClass:'supp-goal-combo', desc:'Gute Alternative zu Whey für Veganer. Kombination aus Erbsen- und Reisprotein liefert alle essentiellen Aminosäuren. 1–2 Shakes täglich nach Bedarf.' },
     { name:'Zink', goals:['build'], goalLabel:'Muskelaufbau', goalClass:'supp-goal-build', desc:'Wichtig für Testosteron-Produktion und Immunsystem. Besonders relevant für Sportler. 10–15 mg täglich.' },
   ];
 
