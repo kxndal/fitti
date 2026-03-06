@@ -754,15 +754,18 @@
     if (e.target === this) closeConfirm();
   });
 
+  // Auto-Login wenn Passwort bereits gespeichert
+  if (localStorage.getItem(PW_KEY)) loginSuccess();
+
   // Live-Update: reagiert auf localStorage-Änderungen aus anderen Tabs
   window.addEventListener('storage', e => {
     if (e.key === 'fitti_stats') renderStats();
   });
 
-  // Fallback: alle 5s aktualisieren (z.B. wenn gleicher Tab)
+  // Fallback: alle 3s aktualisieren
   setInterval(() => {
     if (document.getElementById('admin-app').style.display !== 'none') renderStats();
-  }, 5000);
+  }, 3000);
 </script>
 </body>
 </html>
