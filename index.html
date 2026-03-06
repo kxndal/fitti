@@ -870,6 +870,7 @@
     if (document.hidden) save(); else t0 = Date.now();
   });
   window.addEventListener('beforeunload', save);
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 })();
 </script>
 </body>
