@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(export PATH=\"$PATH:/c/Program Files/GitHub CLI\")",
+      "Bash(gh api repos/kxndal/fitti/events --jq '.[].payload.before')",
+      "Bash(gh api repos/kxndal/fitti/git/trees/195712af21c61ee489a5ead4348c029d9bfce11f --jq '.tree[].path')",
+      "Bash(git fetch origin 195712af21c61ee489a5ead4348c029d9bfce11f)",
+      "Bash(git checkout 195712af21c61ee489a5ead4348c029d9bfce11f -- admin.html gerichte.json)",
+      "Bash(git add admin.html gerichte.json)",
+      "Bash(git commit -m \"Restore admin.html and gerichte.json\")",
+      "Bash(git push origin main)",
+      "Bash(git add trainingsplan.html sw.js manifest.json)",
+      "Bash(git commit:*)",
+      "Bash(export PATH=\"$PATH:/c/Program Files/nodejs\")",
+      "Bash(npx --yes serve --version)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(git add server.js)",
+      "Bash(git push)",
+      "Bash(git add index.html trainingsplan.html)",
+      "Bash(git add index.html)",
+      "Bash(git add trainingsplan.html)"
+    ]
+  }
+}
