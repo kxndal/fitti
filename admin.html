@@ -96,8 +96,9 @@
     /* ── LOGIN ── */
     #login-screen {
       min-height: calc(100vh - 185px);
-      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+      display: none; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
     }
+    #login-screen.visible { display: flex; }
     .login-title { text-align: center; }
     .login-title h1 { font-size: 1.8rem; font-weight: 700; letter-spacing: -0.03em; }
     .login-title h1 span { color: var(--pink); }
@@ -419,7 +420,8 @@
   }
 
   function loginSuccess() {
-    document.getElementById('login-screen').style.display = 'none';
+    sessionStorage.setItem('fitti_admin_ok', '1');
+    document.getElementById('login-screen').classList.remove('visible');
     document.getElementById('admin-app').style.display = 'block';
     loadGHSettings();
     renderMeals();
@@ -490,7 +492,8 @@
   }
 
   function doLogout() {
-    document.getElementById('login-screen').style.display = 'flex';
+    sessionStorage.removeItem('fitti_admin_ok');
+    document.getElementById('login-screen').classList.add('visible');
     document.getElementById('admin-app').style.display = 'none';
     document.getElementById('login-pw').value = '';
   }
@@ -754,8 +757,12 @@
     if (e.target === this) closeConfirm();
   });
 
-  // Auto-Login wenn Passwort bereits gespeichert
-  if (localStorage.getItem(PW_KEY)) loginSuccess();
+  // Auto-Login: sessionStorage (Reload) oder localStorage (erster Besuch nach Browser-Neustart)
+  if (sessionStorage.getItem('fitti_admin_ok') || localStorage.getItem(PW_KEY)) {
+    loginSuccess();
+  } else {
+    document.getElementById('login-screen').classList.add('visible');
+  }
 
   // Live-Update: reagiert auf localStorage-Änderungen aus anderen Tabs
   window.addEventListener('storage', e => {
