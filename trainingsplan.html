@@ -53,7 +53,8 @@
       background: var(--surface2); border: 1px solid var(--border); border-radius: 10px;
       cursor: pointer; text-align: left; width: 100%;
       font-family: 'Space Grotesk', sans-serif; color: var(--muted2);
-      transition: border-color 0.15s, background 0.15s, color 0.15s;
+      transition: border-color 0.12s, background 0.12s, color 0.12s;
+      touch-action: manipulation; -webkit-tap-highlight-color: transparent;
     }
     .option-btn:hover { border-color: #333; color: #fff; }
     .option-btn.selected { border-color: var(--accent); color: #fff; background: var(--accent-dim); }
@@ -733,7 +734,7 @@
       : q.grid2 ? `<div class="options-grid options-grid-2">` : `<div class="options-grid">`)
       + q.options.map(o => {
         const sel = isMulti ? selected.includes(o.value) : selected === o.value;
-        return `<button class="option-btn${sel ? ' selected' : ''}" onclick="selectOption('${q.id}','${o.value}',${isMulti},${q.max || 1})">
+        return `<button class="option-btn${sel ? ' selected' : ''}" data-value="${o.value}" onclick="selectOption('${q.id}','${o.value}',${isMulti},${q.max || 1})">
           <span class="option-icon">${o.icon}</span>
           <div><div class="option-label">${o.label}</div>${o.desc ? `<div class="option-desc">${o.desc}</div>` : ''}</div>
         </button>`;
@@ -754,13 +755,15 @@
   }
 
   function selectOption(qId, value, isMulti, max) {
+    const q = QUESTIONS.find(q => q.id === qId);
+    let autoAdvance = false;
+
     if (isMulti) {
-      const q = QUESTIONS.find(q => q.id === qId);
       let a = answers[qId] || [];
-      // Exclusive option handling (e.g. "Keine")
       if (q && q.exclusive) {
         if (value === q.exclusive) {
           a = [value];
+          autoAdvance = true;
         } else {
           a = a.filter(v => v !== q.exclusive);
           a.includes(value) ? a = a.filter(v => v !== value) : a.length < max && (a = [...a, value]);
@@ -769,11 +772,29 @@
         a.includes(value) ? a = a.filter(v => v !== value) : a.length < max && (a = [...a, value]);
       }
       answers[qId] = a;
+      document.querySelectorAll('.option-btn').forEach(btn => {
+        btn.classList.toggle('selected', a.includes(btn.dataset.value));
+      });
+      const hasAns = a.length > 0;
+      const weiter = document.querySelector('.btn-next');
+      if (weiter) {
+        weiter.classList.toggle('ready', hasAns);
+        weiter.classList.toggle('generate', hasAns && currentQ === QUESTIONS.length - 1);
+      }
     } else {
       answers[qId] = value;
+      document.querySelectorAll('.option-btn').forEach(btn => {
+        btn.classList.toggle('selected', btn.dataset.value === value);
+      });
+      const weiter = document.querySelector('.btn-next');
+      if (weiter) {
+        weiter.classList.add('ready');
+        if (currentQ === QUESTIONS.length - 1) weiter.classList.add('generate');
+      }
+      autoAdvance = true;
     }
-    renderQuestion();
-    if (!isMulti) setTimeout(goNext, 280);
+
+    if (autoAdvance) setTimeout(goNext, 180);
   }
 
   function goNext() {
