@@ -753,6 +753,16 @@
   document.getElementById('confirm-overlay').addEventListener('click', function(e) {
     if (e.target === this) closeConfirm();
   });
+
+  // Live-Update: reagiert auf localStorage-Änderungen aus anderen Tabs
+  window.addEventListener('storage', e => {
+    if (e.key === 'fitti_stats') renderStats();
+  });
+
+  // Fallback: alle 5s aktualisieren (z.B. wenn gleicher Tab)
+  setInterval(() => {
+    if (document.getElementById('admin-app').style.display !== 'none') renderStats();
+  }, 5000);
 </script>
 </body>
 </html>
