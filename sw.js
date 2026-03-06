@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fitti-v1';
+const CACHE_NAME = 'fitti-v2';
 const URLS_TO_CACHE = [
   './trainingsplan.html',
   './index.html',
@@ -22,8 +22,25 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(cached => cached || fetch(event.request))
-  );
+  const url = new URL(event.request.url);
+  const isHTML = event.request.destination === 'document' || url.pathname.endsWith('.html');
+  const isSameOrigin = url.origin === self.location.origin;
+
+  if (isHTML && isSameOrigin) {
+    // Network-first für HTML: immer aktuelle Version, Cache als Offline-Fallback
+    event.respondWith(
+      fetch(event.request)
+        .then(r => {
+          const clone = r.clone();
+          caches.open(CACHE_NAME).then(c => c.put(event.request, clone));
+          return r;
+        })
+        .catch(() => caches.match(event.request))
+    );
+  } else {
+    // Cache-first für externe Ressourcen (Fonts etc.)
+    event.respondWith(
+      caches.match(event.request).then(cached => cached || fetch(event.request))
+    );
+  }
 });

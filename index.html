@@ -460,7 +460,7 @@
     return MEALS[cat].filter(m => {
       if(diet==='vegan' && m.type!=='vegan') return false;
       if(diet==='vegetarisch' && m.type==='normal') return false;
-      const nl = m.name.toLowerCase();
+      const nl = (m.name + ' ' + (m.note || '')).toLowerCase();
       for(const al of allergies) if((ALLERGY_KEYWORDS[al]||[]).some(kw=>nl.includes(kw))) return false;
       return true;
     });
