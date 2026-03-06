@@ -846,5 +846,24 @@
   <button class="saved-banner-btn" onclick="editData()">Ändern</button>
 </div>
 
+<script>
+(function() {
+  const KEY = 'fitti_stats', PAGE = 'index';
+  const stats = JSON.parse(localStorage.getItem(KEY) || '{}');
+  if (!stats[PAGE]) stats[PAGE] = { visits: 0, totalTime: 0, lastVisit: null };
+  stats[PAGE].visits++;
+  stats[PAGE].lastVisit = new Date().toISOString();
+  localStorage.setItem(KEY, JSON.stringify(stats));
+  const t0 = Date.now();
+  function save() {
+    const s = JSON.parse(localStorage.getItem(KEY) || '{}');
+    if (!s[PAGE]) s[PAGE] = { visits: 0, totalTime: 0, lastVisit: null };
+    s[PAGE].totalTime = (s[PAGE].totalTime || 0) + Math.round((Date.now() - t0) / 1000);
+    localStorage.setItem(KEY, JSON.stringify(s));
+  }
+  document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+  window.addEventListener('beforeunload', save);
+})();
+</script>
 </body>
 </html>

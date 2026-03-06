@@ -179,6 +179,20 @@
     .dialog p { color: var(--muted2); font-size: 0.84rem; margin-bottom: 22px; line-height: 1.5; }
     .dialog-actions { display: flex; gap: 8px; justify-content: center; }
 
+    /* ── STATS ── */
+    .stat-row { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border); }
+    .stat-row:last-child { border-bottom:none; }
+    .stat-page { font-size:0.82rem; font-weight:600; width:110px; flex-shrink:0; }
+    .stat-bar-wrap { flex:1; background:var(--surface2); border-radius:100px; height:6px; overflow:hidden; }
+    .stat-bar-fill { height:100%; border-radius:100px; background:var(--pink); transition:width 0.4s; }
+    .stat-nums { display:flex; gap:16px; flex-shrink:0; }
+    .stat-num { font-size:0.75rem; color:var(--muted2); text-align:right; min-width:52px; }
+    .stat-num strong { display:block; font-size:0.88rem; color:var(--text); font-weight:600; }
+    .stats-total { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+    .stats-total-item { flex:1; min-width:100px; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 14px; }
+    .stats-total-item .label { font-size:0.6rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted2); margin-bottom:4px; }
+    .stats-total-item .value { font-size:1.1rem; font-weight:700; }
+
     @media (max-width: 480px) {
       .input-grid { grid-template-columns: 1fr 1fr; }
     }
@@ -245,6 +259,15 @@
 
     <!-- STATUS -->
     <div class="status-bar" id="status-bar"></div>
+
+    <!-- STATISTIK -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-tag">Nutzungsstatistik</span>
+        <button class="btn btn-ghost btn-sm" onclick="resetStats()">Zurücksetzen</button>
+      </div>
+      <div class="card-body" id="stats-body" style="padding-top:12px"></div>
+    </div>
 
     <!-- GITHUB SETTINGS -->
     <div class="card">
@@ -401,6 +424,70 @@
     document.getElementById('admin-app').style.display = 'block';
     loadGHSettings();
     renderMeals();
+    renderStats();
+  }
+
+  // ─── STATISTIK ────────────────────────────────────────────────────────────
+  const PAGE_LABELS = { index: 'Essensplan', trainingsplan: 'Trainingsplan' };
+
+  function fmtTime(sec) {
+    if (!sec) return '–';
+    if (sec < 60) return sec + 's';
+    const m = Math.floor(sec / 60), s = sec % 60;
+    return m + 'min' + (s ? ' ' + s + 's' : '');
+  }
+
+  function renderStats() {
+    const raw = JSON.parse(localStorage.getItem('fitti_stats') || '{}');
+    const pages = Object.keys(PAGE_LABELS);
+    const totalVisits = pages.reduce((s, p) => s + (raw[p]?.visits || 0), 0);
+    const totalTime   = pages.reduce((s, p) => s + (raw[p]?.totalTime || 0), 0);
+    const maxVisits   = Math.max(1, ...pages.map(p => raw[p]?.visits || 0));
+
+    let lastDate = null;
+    pages.forEach(p => {
+      const d = raw[p]?.lastVisit;
+      if (d && (!lastDate || d > lastDate)) lastDate = d;
+    });
+
+    const el = document.getElementById('stats-body');
+    el.innerHTML = `
+      <div class="stats-total">
+        <div class="stats-total-item">
+          <div class="label">Gesamt Besuche</div>
+          <div class="value">${totalVisits}</div>
+        </div>
+        <div class="stats-total-item">
+          <div class="label">Gesamtzeit</div>
+          <div class="value">${fmtTime(totalTime)}</div>
+        </div>
+        <div class="stats-total-item">
+          <div class="label">Letzter Besuch</div>
+          <div class="value" style="font-size:0.82rem">${lastDate ? new Date(lastDate).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '–'}</div>
+        </div>
+      </div>
+      ${pages.map(p => {
+        const d = raw[p] || {};
+        const pct = Math.round(((d.visits||0) / maxVisits) * 100);
+        const avg = d.visits ? Math.round((d.totalTime||0) / d.visits) : 0;
+        return `
+        <div class="stat-row">
+          <div class="stat-page">${PAGE_LABELS[p]}</div>
+          <div class="stat-bar-wrap"><div class="stat-bar-fill" style="width:${pct}%"></div></div>
+          <div class="stat-nums">
+            <div class="stat-num"><strong>${d.visits||0}</strong>Besuche</div>
+            <div class="stat-num"><strong>${fmtTime(d.totalTime||0)}</strong>Gesamt</div>
+            <div class="stat-num"><strong>${fmtTime(avg)}</strong>Ø Sitzung</div>
+          </div>
+        </div>`;
+      }).join('')}`;
+  }
+
+  function resetStats() {
+    if (!confirm('Statistiken zurücksetzen?')) return;
+    localStorage.removeItem('fitti_stats');
+    renderStats();
+    showStatus('Statistiken zurückgesetzt', 'success');
   }
 
   function doLogout() {
