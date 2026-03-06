@@ -854,14 +854,19 @@
   stats[PAGE].visits++;
   stats[PAGE].lastVisit = new Date().toISOString();
   localStorage.setItem(KEY, JSON.stringify(stats));
-  const t0 = Date.now();
+  let t0 = Date.now();
   function save() {
+    const elapsed = Math.round((Date.now() - t0) / 1000);
+    if (elapsed <= 0) return;
+    t0 = Date.now();
     const s = JSON.parse(localStorage.getItem(KEY) || '{}');
     if (!s[PAGE]) s[PAGE] = { visits: 0, totalTime: 0, lastVisit: null };
-    s[PAGE].totalTime = (s[PAGE].totalTime || 0) + Math.round((Date.now() - t0) / 1000);
+    s[PAGE].totalTime = (s[PAGE].totalTime || 0) + elapsed;
     localStorage.setItem(KEY, JSON.stringify(s));
   }
-  document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) save(); else t0 = Date.now();
+  });
   window.addEventListener('beforeunload', save);
 })();
 </script>
