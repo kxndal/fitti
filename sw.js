@@ -1,7 +1,8 @@
-const CACHE_NAME = 'fitti-v2';
+const CACHE_NAME = 'fitti-v3';
 const URLS_TO_CACHE = [
   './trainingsplan.html',
   './index.html',
+  './gerichte.json',
   'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap',
 ];
 
@@ -24,9 +25,10 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   const isHTML = event.request.destination === 'document' || url.pathname.endsWith('.html');
+  const isJSON = url.pathname.endsWith('.json') && url.origin === self.location.origin;
   const isSameOrigin = url.origin === self.location.origin;
 
-  if (isHTML && isSameOrigin) {
+  if ((isHTML || isJSON) && isSameOrigin) {
     // Network-first für HTML: immer aktuelle Version, Cache als Offline-Fallback
     event.respondWith(
       fetch(event.request)
