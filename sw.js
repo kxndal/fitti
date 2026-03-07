@@ -1,9 +1,11 @@
-const CACHE_NAME = 'fitti-v3';
+const CACHE_NAME = 'fitti-v4';
 const URLS_TO_CACHE = [
   './trainingsplan.html',
   './index.html',
   './gerichte.json',
-  'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap',
+  './fonts/spacegrotesk-latin.woff2',
+  './fonts/spacegrotesk-latin-ext.woff2',
+  './fonts/spacegrotesk-vietnamese.woff2',
 ];
 
 self.addEventListener('install', event => {
